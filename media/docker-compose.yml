@@ -29,7 +29,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./transmission/config:/config
+      - ${ROOT_DIR}/transmission/config:/config
       - /mnt/media:/media
     network_mode: "service:gluetun"
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
     group_add:
       - "991"
     volumes:
-      - ./jellyfin/config:/config
+      - ${ROOT_DIR}/jellyfin/config:/config
       - /mnt/media:/media
     ports:
       - 8096:8096
@@ -62,7 +62,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./prowlarr/config:/config
+      - ${ROOT_DIR}/prowlarr/config:/config
     ports:
       - 9696:9696
     restart: unless-stopped
@@ -77,7 +77,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./radarr/config:/config
+      - ${ROOT_DIR}/radarr/config:/config
       - /mnt/media:/media
     ports:
       - 7878:7878
@@ -93,7 +93,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./sonarr/config:/config
+      - ${ROOT_DIR}/sonarr/config:/config
       - /mnt/media:/media
     ports:
       - 8989:8989
@@ -112,7 +112,7 @@ services:
       - 1.1.1.1
       - 8.8.8.8
     volumes:
-      - ./jellyseerr/config:/app/config
+      - ${ROOT_DIR}/jellyseerr/config:/app/config
     ports:
       - 5055:5055
     restart: unless-stopped
@@ -140,7 +140,7 @@ services:
       - TZ=${TZ}
       - PORT=11011
     volumes:
-      - ./cleanuparr/config:/config
+      - ${ROOT_DIR}/cleanuparr/config:/config
     ports:
       - 11011:11011
     networks:
