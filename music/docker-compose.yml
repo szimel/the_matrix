@@ -1,0 +1,60 @@
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - ND_SCANINTERVAL=1m
+      - ND_AUTOUPDATE=true
+    volumes:
+      - ./navidrome/config:/data
+      - /mnt/media/music:/music
+    ports:
+      - 4533:4533
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  slskd:
+    image: slskd/slskd:latest
+    container_name: slskd
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./slskd:/app
+      - /mnt/media/downloads/soulseek:/downloads
+      - /mnt/media/music:/uploads
+    ports:
+      - 5030:5030
+      - 50300:50300
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  soulsync:
+    image: ghcr.io/nezreka/soulsync:latest
+    container_name: soulsync
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./soulsync/config:/app/config
+      - ./soulsync/logs:/app/logs
+      - ./soulsync/data:/app/data
+      - /mnt/media/downloads/soulseek:/app/downloads
+      - /mnt/media/music:/music
+      - /mnt/media/songs:/app/Staging
+    ports:
+      - 8008:8008
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true

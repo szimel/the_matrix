@@ -1,0 +1,29 @@
+# 1. Ignore everything in the root directory by default
+/*
+
+# 2. Allow Git to track top-level root config files
+!.gitignore
+!README.md
+
+# Media - arr stack
+!/media
+/media/*
+!/media/docker-compose.yml
+
+# Music stack
+!/music
+/music/*
+!/music/docker-compose.yml
+!/music/slskd
+/music/slskd/*
+!/music/slskd/slskd.example.yml
+
+# Productivity stack
+!/productivity
+/productivity/*
+!/productivity/docker-compose.yml
+
+# Monitoring stack
+!/monitoring
+/monitoring/*
+!/monitoring/docker-compose.yml

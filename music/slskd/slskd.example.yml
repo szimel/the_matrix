@@ -1,0 +1,20 @@
+soulseek:
+  username: ______
+  password: ______
+  listen_port: 50300
+
+directories:
+  downloads: /downloads
+
+shares:
+  directories:
+    - /uploads
+
+web:
+  port: 5030
+  authentication:
+    disabled: true
+    api_keys:
+      xplo_key:
+        key: "______"
+

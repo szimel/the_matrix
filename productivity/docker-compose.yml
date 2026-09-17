@@ -1,0 +1,60 @@
+services:
+  actual-server:
+    image: actualbudget/actual-server:latest
+    container_name: actual-server
+    restart: unless-stopped
+    ports:
+      - '5006:5006'
+    volumes:
+      - /mnt/actual-data:/data
+    networks:
+      - caddy_net
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    environment:
+      - DOMAIN=${VAULTWARDEN_DOMAIN}
+      - SIGNUPS_ALLOWED=false
+      - TZ=${TZ}
+    volumes:
+      - ./vaultwarden/data:/data
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  vikunja:
+    image: vikunja/vikunja:latest
+    container_name: vikunja
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - VIKUNJA_SERVICE_PUBLICURL=${VIKUNJA_URL}
+      - TZ=${TZ}
+      - VIKUNJA_OUTGOINGREQUESTS_ALLOWNONROUTABLEIPS=true
+    ports:
+      - 3456:3456
+    volumes:
+      - ./vikunja/files:/app/vikunja/files
+      - ./vikunja/db:/db
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  vikunja-discord:
+    build: ./vikunja-discord
+    container_name: vikunja-discord
+    environment:
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - VIKUNJA_URL=${VIKUNJA_URL}
+    ports:
+      - 8001:8001
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
