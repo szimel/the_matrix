@@ -54,6 +54,13 @@ services:
     restart: unless-stopped
     networks:
       - caddy_net
+      
+  omni-tools:
+    image: iib0011/omni-tools:latest
+    container_name: omni-tools
+    restart: unless-stopped
+    ports:
+      - 8085:82
 
 networks:
   caddy_net:
