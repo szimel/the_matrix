@@ -44,7 +44,7 @@ services:
       - caddy_net
 
   vikunja-discord:
-    build: ${ROOT_DIR}/vikunja-discord
+    build: ./vikunja-discord
     container_name: vikunja-discord
     environment:
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
