@@ -60,7 +60,7 @@ services:
     container_name: omni-tools
     restart: unless-stopped
     ports:
-      - 8085:82
+      - 8085:8085
 
 networks:
   caddy_net:
