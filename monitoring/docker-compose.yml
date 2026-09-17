@@ -25,6 +25,16 @@ services:
       HUB_URL: ${BESZEL_HUB_URL}
       TOKEN: ${BESZEL_TOKEN}
       KEY: ${BESZEL_KEY}
+      
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - caddy_net
 
 networks:
   caddy_net:
