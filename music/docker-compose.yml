@@ -9,7 +9,7 @@ services:
       - ND_SCANINTERVAL=1m
       - ND_AUTOUPDATE=true
     volumes:
-      - ./navidrome/config:/data
+      - ${ROOT_DIR}/navidrome/config:/data
       - /mnt/media/music:/music
     ports:
       - 4533:4533
@@ -25,7 +25,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./slskd:/app
+      - ${ROOT_DIR}/slskd:/app
       - /mnt/media/downloads/soulseek:/downloads
       - /mnt/media/music:/uploads
     ports:
@@ -43,9 +43,9 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./soulsync/config:/app/config
-      - ./soulsync/logs:/app/logs
-      - ./soulsync/data:/app/data
+      - ${ROOT_DIR}/soulsync/config:/app/config
+      - ${ROOT_DIR}/soulsync/logs:/app/logs
+      - ${ROOT_DIR}/soulsync/data:/app/data
       - /mnt/media/downloads/soulseek:/app/downloads
       - /mnt/media/music:/music
       - /mnt/media/songs:/app/Staging
