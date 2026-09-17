@@ -14,7 +14,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 
 * **`/media`** - The *Arr stack, Jellyfin, Transmission + Gluetun (VPN), and Cleanuparr.
 * **`/music`** - Navidrome, Soulseek (`slskd`), and Soulsync.
-* **`/productivity`** - Vaultwarden, Actual Budget, Vikunja, and a custom ultra-lightweight Python bot (`vikunja-discord`) for rich Discord notifications.
+* **`/productivity`** - Vaultwarden, Actual Budget, Vikunja, OmniTool, Bento, and a custom ultra-lightweight Python bot (`vikunja-discord`) for rich Discord notifications.
 * **`/monitoring`** - Beszel (resource stats) and Cloudflared (Zero Trust Tunnel).
 * **`/caddy`** - Reverse proxy (not tracked).
 * **`/dockhand`** - The GitOps manager (not tracked).

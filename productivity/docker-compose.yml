@@ -63,6 +63,15 @@ services:
       - 8085:80
     networks:
       - caddy_net
+      
+  bentopdf:
+    image: bentopdf/bentopdf:latest
+    container_name: bentopdf
+    restart: unless-stopped
+    ports:
+      - 8086:8080
+    networks:
+      - caddy_net
 
 networks:
   caddy_net:
