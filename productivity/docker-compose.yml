@@ -73,6 +73,21 @@ services:
     networks:
       - caddy_net
 
+  freshrss:
+    image: lscr.io/linuxserver/freshrss:latest
+    container_name: freshrss
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${ROOT_DIR}/freshrss/config:/config
+    ports:
+      - 8087:80
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
 networks:
   caddy_net:
     external: true
