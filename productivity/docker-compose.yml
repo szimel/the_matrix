@@ -88,6 +88,23 @@ services:
     networks:
       - caddy_net
 
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    container_name: mealie
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - ALLOW_SIGNUP=true # You can change to false after you and your wife create accounts
+      - BASE_URL=https://mealie.bigdaddyz.com
+    volumes:
+      - ${ROOT_DIR}/mealie/data:/app/data/
+    ports:
+      - 9925:9000 # Maps Mealie's internal port 9000 to 9925 on your host
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
 networks:
   caddy_net:
     external: true
