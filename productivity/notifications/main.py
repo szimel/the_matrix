@@ -154,8 +154,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
         tag_names = [str(t.get("name", "")).lower() if isinstance(t, dict) else str(t).lower() for t in tags]
         
         # If the tag logic determines your wife is cooking, skip sending it to Discord
-        if !any("BigPappa" in t for t in tag_names):
-            print(f"Skipping Mealie Discord notification. '{recipe_name}' is tagged for wife.")
+        if not any("BigPappa" in t for t in tag_names):
+            print(f"Skipping Mealie Discord notification. '{recipe_name}' isn't tagged for BigPappa")
             return
 
         recipe_slug = recipe.get("slug", "")
