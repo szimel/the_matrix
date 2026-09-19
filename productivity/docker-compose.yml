@@ -96,7 +96,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - BASE_URL=https://mealie.bigdaddyz.com
+      - MEALIE_URL=${MEALIE_URL}
     volumes:
       - ${ROOT_DIR}/mealie/data:/app/data/
     ports:
