@@ -43,12 +43,13 @@ services:
     networks:
       - caddy_net
 
-  vikunja-discord:
-    build: ./vikunja-discord
-    container_name: vikunja-discord
+  notifications:
+    build: ./notifications
+    container_name: notifications
     environment:
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
       - VIKUNJA_URL=${VIKUNJA_URL}
+      - MEALIE_URL=${MEALIE_URL}
     ports:
       - 8001:8001
     restart: unless-stopped
@@ -95,7 +96,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - BASE_URL=https://mealie.bigdaddyz.com
+      - MEALIE_URL=${MEALIE_URL}
     volumes:
       - ${ROOT_DIR}/mealie/data:/app/data/
     ports:
