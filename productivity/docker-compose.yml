@@ -97,6 +97,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - MEALIE_URL=${MEALIE_URL}
+      - HTTP_ALLOW_LIST=notifications
     volumes:
       - ${ROOT_DIR}/mealie/data:/app/data/
     ports:
