@@ -3,10 +3,27 @@ import json
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import datetime
+import re
+import html
 
+# Environment Variables
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
-# Allows the Discord Title to be a clickable link straight to the task
-VIKUNJA_URL = os.getenv("VIKUNJA_URL", "https://your-vikunja-url.com").rstrip('/')
+VIKUNJA_URL = os.getenv("VIKUNJA_URL", "https://tasks.bigdaddyz.com").rstrip('/')
+MEALIE_URL = os.getenv("MEALIE_URL", "https://mealie.bigdaddyz.com").rstrip('/') # Change if your Mealie domain is different
+
+def clean_html(raw_html):
+    """Safely converts HTML to Discord-friendly text."""
+    if not raw_html:
+        return ""
+    # Replace block tags with newlines to preserve structural spacing
+    text = re.sub(r'<(br|p|h[1-6]|li|div)[^>]*>', '\n', raw_html, flags=re.IGNORECASE)
+    # Strip all remaining HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Convert HTML entities (e.g., &amp; to &)
+    text = html.unescape(text)
+    # Clean up excessive newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 class WebhookHandler(BaseHTTPRequestHandler):
     # Suppress standard HTTP logs to keep Docker logs clean
@@ -14,34 +31,50 @@ class WebhookHandler(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        if self.path != '/webhook':
-            self.send_response(404)
-            self.end_headers()
-            return
-            
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
         try:
             payload = json.loads(post_data.decode('utf-8'))
-            self.process_payload(payload)
+            
+            # Application Routing
+            if self.path.startswith('/vikunja') or self.path == '/webhook':
+                self.process_vikunja(payload)
+            elif self.path.startswith('/mealie'):
+                self.process_mealie(payload)
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
             
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(b'{"status":"success"}')
-            print(f"[{datetime.datetime.now().isoformat()}] Processed: {payload.get('event_name')}")
+            
         except Exception as e:
             print(f"[{datetime.datetime.now().isoformat()}] Error: {e}")
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b'{"status":"error"}')
-            
-    def process_payload(self, payload):
+
+    def send_to_discord(self, payload_dict):
+        """Helper function to execute the Discord POST request."""
         if not DISCORD_WEBHOOK_URL:
             print("ERROR: DISCORD_WEBHOOK_URL is missing!")
             return
+            
+        req = urllib.request.Request(DISCORD_WEBHOOK_URL, method="POST")
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('User-Agent', 'Homelab-Discord-Relay')
+        
+        try:
+            payload_data = json.dumps(payload_dict).encode('utf-8')
+            urllib.request.urlopen(req, data=payload_data, timeout=5)
+        except Exception as e:
+            print(f"Failed to push to Discord: {e}")
 
+    def process_vikunja(self, payload):
         event_name = payload.get("event_name", "Unknown Event")
         data = payload.get("data", {})
         
@@ -51,34 +84,32 @@ class WebhookHandler(BaseHTTPRequestHandler):
         project = data.get("project", {})
         comment = data.get("comment", {})
         
-        # 1. Format Event Subtitle (e.g., "task.reminder.fired" -> "Task Reminder Fired")
+        print(f"[{datetime.datetime.now().isoformat()}] Vikunja Event: {event_name}")
+        
         readable_event = event_name.replace('.', ' ').title()
         
-        # 2. Extract Titles & Task URL for Clickability
         task_url = VIKUNJA_URL
-        if tasks: # Handles multiple tasks going overdue at once
+        if tasks: 
             task_title = f"{len(tasks)} tasks are overdue!"
-            task_desc = "\n".join([f"• {t.get('title', '')}" for t in tasks])
+            task_desc = "\n".join([f"• {clean_html(t.get('title', ''))}" for t in tasks])
         else:
-            task_title = task.get("title", "Unknown Task")
-            task_desc = task.get("description", "")
+            task_title = clean_html(task.get("title", "Unknown Task"))
+            # Apply our HTML cleaner here to fix the bug!
+            task_desc = clean_html(task.get("description", ""))
             task_id = task.get("id")
             if task_id:
                 task_url = f"{VIKUNJA_URL}/tasks/{task_id}"
                 
-        # 3. Dynamic Discord Colors (Hex converted to Int)
-        color = 3447003 # Default Blue
-        if "created" in event_name: color = 3066993 # Green
-        elif "deleted" in event_name: color = 15158332 # Red
-        elif "updated" in event_name or "edited" in event_name: color = 15844367 # Yellow
-        elif "overdue" in event_name: color = 15105570 # Orange
-        elif "reminder" in event_name: color = 10181046 # Purple
-        elif "done" in event_name: color = 3066993 # Green
+        color = 3447003 
+        if "created" in event_name: color = 3066993 
+        elif "deleted" in event_name: color = 15158332 
+        elif "updated" in event_name or "edited" in event_name: color = 15844367 
+        elif "overdue" in event_name: color = 15105570 
+        elif "reminder" in event_name: color = 10181046 
+        elif "done" in event_name: color = 3066993 
             
-        # 4. Determine User
         doer_name = doer.get("name") or doer.get("username") or "Vikunja System"
         
-        # 5. Build Discord Embed Structure
         embed = {
             "title": task_title,
             "url": task_url,
@@ -90,13 +121,11 @@ class WebhookHandler(BaseHTTPRequestHandler):
             "footer": {"text": "Vikunja Task Automation"}
         }
         
-        # Main Description (Cut off if it's a massive wall of text)
         if task_desc:
             embed["description"] = task_desc[:800] + "..." if len(task_desc) > 800 else task_desc
             
-        # Optional Context Fields (These display side-by-side in Discord)
         if project and project.get("title"):
-            embed["fields"].append({"name": "📁 Project", "value": project.get("title"), "inline": True})
+            embed["fields"].append({"name": "📁 Project", "value": clean_html(project.get("title")), "inline": True})
             
         priority = task.get("priority")
         if priority:
@@ -106,26 +135,53 @@ class WebhookHandler(BaseHTTPRequestHandler):
             
         due_date = task.get("due_date")
         if due_date and not due_date.startswith("0001"):
-            # Truncates '2026-10-17T19:39:32Z' into '2026-10-17'
             embed["fields"].append({"name": "📅 Due Date", "value": due_date[:10], "inline": True})
             
         if comment and comment.get("text"):
-            embed["fields"].append({"name": "💬 Comment", "value": comment.get("text"), "inline": False})
+            embed["fields"].append({"name": "💬 Comment", "value": clean_html(comment.get("text")), "inline": False})
             
-        # 6. Send payload to Discord using native urllib
-        req = urllib.request.Request(DISCORD_WEBHOOK_URL, method="POST")
-        req.add_header('Content-Type', 'application/json')
-        req.add_header('User-Agent', 'Vikunja-Discord-Relay')
+        self.send_to_discord({"embeds": [embed]})
+
+    def process_mealie(self, payload):
+        print(f"[{datetime.datetime.now().isoformat()}] Mealie Event triggered")
         
-        try:
-            payload_data = json.dumps({"embeds": [embed]}).encode('utf-8')
-            urllib.request.urlopen(req, data=payload_data, timeout=5)
-        except Exception as e:
-            print(f"Failed to push to Discord: {e}")
+        # Depending on the Mealie event, recipe data might be nested or flat.
+        recipe = payload.get("recipe", payload)
+        recipe_name = recipe.get("name", "Unknown Meal")
+        tags = recipe.get("tags", [])
+        
+        # Flatten and lower-case tags to easily check for "wife"
+        tag_names = [str(t.get("name", "")).lower() if isinstance(t, dict) else str(t).lower() for t in tags]
+        
+        # If the tag logic determines your wife is cooking, skip sending it to Discord
+        if any("wife" in t for t in tag_names):
+            print(f"Skipping Mealie Discord notification. '{recipe_name}' is tagged for wife.")
+            return
+
+        recipe_slug = recipe.get("slug", "")
+        recipe_url = f"{MEALIE_URL}/recipe/{recipe_slug}" if recipe_slug else MEALIE_URL
+        
+        embed = {
+            "title": f"👨‍🍳 Time to Cook: {recipe_name}",
+            "description": f"You are scheduled to cook **{recipe_name}** tonight!",
+            "url": recipe_url,
+            "color": 15258703, # A nice culinary orange color - lmao
+            "footer": {"text": "Mealie Meal Planner"}
+        }
+
+        # Try to append the image. Discord handles image fetching externally, 
+        # so this assumes your Mealie instance is accessible via your domain!
+        recipe_id = recipe.get("id")
+        if recipe_id:
+            image_url = f"{MEALIE_URL}/api/media/recipes/{recipe_id}/images/original.webp"
+            embed["image"] = {"url": image_url}
+
+        self.send_to_discord({"embeds": [embed]})
 
 def run(server_class=HTTPServer, handler_class=WebhookHandler, port=8001):
     server_address = ('0.0.0.0', port)
-    print(f'Starting Ultra-Lightweight Vikunja Relay on port {port}...')
+    print(f'Starting Ultra-Lightweight Discord Relay on port {port}...')
+    print('Routing map -> /vikunja (or /webhook) | /mealie')
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
 
