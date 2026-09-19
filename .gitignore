@@ -22,10 +22,10 @@
 !/productivity
 /productivity/*
 !/productivity/docker-compose.yml
-!/productivity/vikunja-discord
-/productivity/vikunja-discord/*
-!/productivity/vikunja-discord/Dockerfile
-!/productivity/vikunja-discord/main.py
+!/productivity/notifications
+/productivity/notifications/*
+!/productivity/notifications/Dockerfile
+!/productivity/notifications/main.py
 
 # Monitoring stack
 !/monitoring
