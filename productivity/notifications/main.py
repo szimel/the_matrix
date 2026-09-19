@@ -26,11 +26,13 @@ def clean_html(raw_html):
     return text.strip()
 
 class WebhookHandler(BaseHTTPRequestHandler):
-    # Suppress standard HTTP logs to keep Docker logs clean
+    # Un-suppress standard HTTP logs so you can see EVERY connection
     def log_message(self, format, *args):
-        pass
+        print(f"[{datetime.datetime.now().isoformat()}] HTTP Connection: {self.client_address[0]} - {format % args}", flush=True)
 
     def do_POST(self):
+        print(f"[{datetime.datetime.now().isoformat()}] Received POST request on path: {self.path}", flush=True)
+        
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
@@ -53,7 +55,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"status":"success"}')
             
         except Exception as e:
-            print(f"[{datetime.datetime.now().isoformat()}] Error: {e}")
+            print(f"[{datetime.datetime.now().isoformat()}] Error processing POST: {e}", flush=True)
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b'{"status":"error"}')
@@ -61,7 +63,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
     def send_to_discord(self, payload_dict):
         """Helper function to execute the Discord POST request."""
         if not DISCORD_WEBHOOK_URL:
-            print("ERROR: DISCORD_WEBHOOK_URL is missing!")
+            print("ERROR: DISCORD_WEBHOOK_URL is missing!", flush=True)
             return
             
         req = urllib.request.Request(DISCORD_WEBHOOK_URL, method="POST")
@@ -71,20 +73,20 @@ class WebhookHandler(BaseHTTPRequestHandler):
         try:
             payload_data = json.dumps(payload_dict).encode('utf-8')
             urllib.request.urlopen(req, data=payload_data, timeout=5)
+            print(f"[{datetime.datetime.now().isoformat()}] Successfully pushed to Discord!", flush=True)
         except Exception as e:
-            print(f"Failed to push to Discord: {e}")
+            print(f"Failed to push to Discord: {e}", flush=True)
 
     def process_vikunja(self, payload):
         event_name = payload.get("event_name", "Unknown Event")
-        data = payload.get("data", {})
+        print(f"[{datetime.datetime.now().isoformat()}] Vikunja Event triggered: {event_name}", flush=True)
         
+        data = payload.get("data", {})
         task = data.get("task", {})
         tasks = data.get("tasks", []) 
         doer = data.get("doer", {})
         project = data.get("project", {})
         comment = data.get("comment", {})
-        
-        print(f"[{datetime.datetime.now().isoformat()}] Vikunja Event: {event_name}")
         
         readable_event = event_name.replace('.', ' ').title()
         
@@ -94,7 +96,6 @@ class WebhookHandler(BaseHTTPRequestHandler):
             task_desc = "\n".join([f"• {clean_html(t.get('title', ''))}" for t in tasks])
         else:
             task_title = clean_html(task.get("title", "Unknown Task"))
-            # Apply our HTML cleaner here to fix the bug!
             task_desc = clean_html(task.get("description", ""))
             task_id = task.get("id")
             if task_id:
@@ -143,19 +144,23 @@ class WebhookHandler(BaseHTTPRequestHandler):
         self.send_to_discord({"embeds": [embed]})
 
     def process_mealie(self, payload):
-        print(f"[{datetime.datetime.now().isoformat()}] Mealie Event triggered")
+        print(f"[{datetime.datetime.now().isoformat()}] Mealie Event triggered", flush=True)
+        print("========== RAW MEALIE PAYLOAD ==========", flush=True)
+        print(json.dumps(payload, indent=2), flush=True)
+        print("========================================", flush=True)
         
         # Depending on the Mealie event, recipe data might be nested or flat.
         recipe = payload.get("recipe", payload)
         recipe_name = recipe.get("name", "Unknown Meal")
         tags = recipe.get("tags", [])
         
-        # Flatten and lower-case tags to easily check for "wife"
+        # Flatten and lower-case tags to easily check for "BigPappa"
         tag_names = [str(t.get("name", "")).lower() if isinstance(t, dict) else str(t).lower() for t in tags]
         
         # If the tag logic determines your wife is cooking, skip sending it to Discord
-        if not any("BigPappa" in t for t in tag_names):
-            print(f"Skipping Mealie Discord notification. '{recipe_name}' isn't tagged for BigPappa")
+        # (Converted "BigPappa" to lower here to safely match tag_names which were just lowered)
+        if not any("bigpappa" in t for t in tag_names):
+            print(f"Skipping Mealie Discord notification. '{recipe_name}' isn't tagged for BigPappa", flush=True)
             return
 
         recipe_slug = recipe.get("slug", "")
@@ -165,7 +170,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             "title": f"👨‍🍳 Time to Cook: {recipe_name}",
             "description": f"You are scheduled to cook **{recipe_name}** tonight!",
             "url": recipe_url,
-            "color": 15258703, # A nice culinary orange color - lmao
+            "color": 15258703, # A nice culinary orange color
             "footer": {"text": "Mealie Meal Planner"}
         }
 
@@ -180,8 +185,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
 def run(server_class=HTTPServer, handler_class=WebhookHandler, port=8001):
     server_address = ('0.0.0.0', port)
-    print(f'Starting Ultra-Lightweight Discord Relay on port {port}...')
-    print('Routing map -> /vikunja (or /webhook) | /mealie')
+    print(f'Starting Ultra-Lightweight Discord Relay on port {port}...', flush=True)
+    print('Routing map -> /vikunja (or /webhook) | /mealie', flush=True)
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
 
