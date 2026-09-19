@@ -15,24 +15,18 @@ def clean_html(raw_html):
     """Safely converts HTML to Discord-friendly text."""
     if not raw_html:
         return ""
-    # Replace block tags with newlines to preserve structural spacing
     text = re.sub(r'<(br|p|h[1-6]|li|div)[^>]*>', '\n', raw_html, flags=re.IGNORECASE)
-    # Strip all remaining HTML tags
     text = re.sub(r'<[^>]+>', '', text)
-    # Convert HTML entities (e.g., &amp; to &)
     text = html.unescape(text)
-    # Clean up excessive newlines
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 class WebhookHandler(BaseHTTPRequestHandler):
-    # Un-suppress standard HTTP logs so you can see EVERY connection
+    # Keep standard HTTP logs so you can see EVERY connection
     def log_message(self, format, *args):
         print(f"[{datetime.datetime.now().isoformat()}] HTTP Connection: {self.client_address[0]} - {format % args}", flush=True)
 
     def do_POST(self):
-        print(f"[{datetime.datetime.now().isoformat()}] Received POST request on path: {self.path}", flush=True)
-        
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
@@ -40,7 +34,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             payload = json.loads(post_data.decode('utf-8'))
             
             # Application Routing
-            if self.path.startswith('/vikunja'):
+            if self.path.startswith('/vikunja') or self.path == '/webhook':
                 self.process_vikunja(payload)
             elif self.path.startswith('/mealie'):
                 self.process_mealie(payload)
@@ -145,37 +139,55 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
     def process_mealie(self, payload):
         print(f"[{datetime.datetime.now().isoformat()}] Mealie Event triggered", flush=True)
-        print("========== RAW MEALIE PAYLOAD ==========", flush=True)
-        print(json.dumps(payload, indent=2), flush=True)
-        print("========================================", flush=True)
         
-        # Depending on the Mealie event, recipe data might be nested or flat.
-        recipe = payload.get("recipe", payload)
+        # Recursive search to find specific keys regardless of how deeply Mealie nests them
+        def find_key(d, key):
+            if isinstance(d, dict):
+                if key in d: return d[key]
+                for v in d.values():
+                    res = find_key(v, key)
+                    if res is not None: return res
+            elif isinstance(d, list):
+                for item in d:
+                    res = find_key(item, key)
+                    if res is not None: return res
+            return None
+
+        # 1. Safely extract recipe data
+        recipe = find_key(payload, "recipe")
+        if not recipe or not isinstance(recipe, dict):
+            recipe = payload
+
         recipe_name = recipe.get("name", "Unknown Meal")
-        tags = recipe.get("tags", [])
         
-        # Flatten and lower-case tags to easily check for "BigPappa"
+        # 2. Extract tags (handle edge cases where tags are at root instead of inside recipe)
+        tags = recipe.get("tags")
+        if tags is None:
+            tags = find_key(payload, "tags") or []
+            
         tag_names = [str(t.get("name", "")).lower() if isinstance(t, dict) else str(t).lower() for t in tags]
         
-        # If the tag logic determines your wife is cooking, skip sending it to Discord
-        # (Converted "BigPappa" to lower here to safely match tag_names which were just lowered)
+        # 3. Filter for BigPappa
         if not any("bigpappa" in t for t in tag_names):
-            print(f"Skipping Mealie Discord notification. '{recipe_name}' isn't tagged for BigPappa", flush=True)
+            print(f"[{datetime.datetime.now().isoformat()}] Skipping Mealie notification. '{recipe_name}' isn't tagged for BigPappa", flush=True)
             return
 
+        # 4. URLs and Routing
         recipe_slug = recipe.get("slug", "")
-        recipe_url = f"{MEALIE_URL}/recipe/{recipe_slug}" if recipe_slug else MEALIE_URL
+        mealie_local_url = f"{MEALIE_URL}/recipe/{recipe_slug}" if recipe_slug else MEALIE_URL
+        
+        # Extract orgURL (Mealie's native key for original URL) or sourceUrl
+        original_url = recipe.get("orgURL") or recipe.get("sourceUrl") or mealie_local_url
         
         embed = {
             "title": f"👨‍🍳 Time to Cook: {recipe_name}",
-            "description": f"You are scheduled to cook **{recipe_name}** tonight!",
-            "url": recipe_url,
-            "color": 15258703, # A nice culinary orange color
+            "description": f"You are scheduled to cook **{recipe_name}** tonight!\n\n[View Recipe in Mealie]({mealie_local_url})",
+            "url": original_url, # Now points to Budget Bytes!
+            "color": 15258703,
             "footer": {"text": "Mealie Meal Planner"}
         }
 
-        # Try to append the image. Discord handles image fetching externally, 
-        # so this assumes your Mealie instance is accessible via your domain!
+        # 5. Image Extraction
         recipe_id = recipe.get("id")
         if recipe_id:
             image_url = f"{MEALIE_URL}/api/media/recipes/{recipe_id}/images/original.webp"
