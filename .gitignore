@@ -31,3 +31,8 @@
 !/monitoring
 /monitoring/*
 !/monitoring/docker-compose.yml
+
+# Pangolin stack
+!/pangolin
+/pangolin/*
+!/pangolin/docker-compose.yml

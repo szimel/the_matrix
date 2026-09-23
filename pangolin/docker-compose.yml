@@ -1,0 +1,11 @@
+services:
+  pangolin-site:
+    image: fosrl/pangolin-cli
+    container_name: pangolin-site
+    restart: unless-stopped
+    environment:
+      - PANGOLIN_ENDPOINT=${PANDOGLIN_ENDPOINT}
+      - SITE_ID=${SITE_ID}
+      - SITE_SECRET=${SITE_SECRET}
+    networks:
+      - caddy_net
