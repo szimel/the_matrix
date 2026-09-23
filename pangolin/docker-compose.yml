@@ -9,3 +9,7 @@ services:
       - SITE_SECRET=${SITE_SECRET}
     networks:
       - caddy_net
+
+networks:
+  caddy_net:
+    external: true
