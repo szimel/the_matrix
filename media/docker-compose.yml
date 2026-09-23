@@ -48,7 +48,7 @@ services:
       - "991"
     volumes:
       - ${ROOT_DIR}/jellyfin/config:/config
-      - /mnt/media:/media
+      - /mnt/media:/media:ro
     ports:
       - 8096:8096
     restart: unless-stopped
