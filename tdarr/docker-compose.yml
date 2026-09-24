@@ -1,4 +1,5 @@
-tdarr:
+services:
+  tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr
     environment:
