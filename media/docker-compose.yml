@@ -34,27 +34,6 @@ services:
     network_mode: "service:gluetun"
     restart: unless-stopped
 
-  jellyfin:
-    image: lscr.io/linuxserver/jellyfin:latest
-    container_name: jellyfin
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel 
-    devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128
-    group_add:
-      - "991"
-    volumes:
-      - ${ROOT_DIR}/jellyfin/config:/config
-      - /mnt/media:/media:ro
-    ports:
-      - 8096:8096
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
@@ -98,26 +77,6 @@ services:
       - /mnt/media:/media
     ports:
       - 8989:8989
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
-  seerr:
-    image: ghcr.io/seerr-team/seerr:latest 
-    container_name: seerr
-    init: true
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - PORT=5055
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
-    volumes:
-      - ${ROOT_DIR}/jellyseerr/config:/app/config 
-    ports:
-      - 5055:5055
     restart: unless-stopped
     networks:
       - caddy_net
