@@ -25,8 +25,9 @@ services:
     environment:
       - TZ=${TZ}
     volumes:
-      # Absolute paths injected per Dockhand architecture
-      - ${ROOT_DIR}/netdata/config:/etc/netdata
+      # Map specific files instead of the whole directory so we don't break Netdata's internal files
+      - ${ROOT_DIR}/netdata/config/netdata.conf:/etc/netdata/netdata.conf:ro
+      - ${ROOT_DIR}/netdata/config/stream.conf:/etc/netdata/stream.conf:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
