@@ -36,3 +36,8 @@
 !/pangolin
 /pangolin/*
 !/pangolin/docker-compose.yml
+
+# Tdarr
+!/tdarr
+/tdarr/*
+!/tdarr/docker-compose.yml

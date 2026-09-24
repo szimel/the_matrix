@@ -1,0 +1,49 @@
+tdarr:
+    image: ghcr.io/haveagitgat/tdarr:latest
+    container_name: tdarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - serverIP=tdarr
+      - serverPort=8266
+      - webUIPort=8265
+    volumes:
+      - ${ROOT_DIR}/tdarr/server:/app/server
+      - ${ROOT_DIR}/tdarr/configs:/app/configs
+      - ${ROOT_DIR}/tdarr/logs:/app/logs
+      - /mnt/media:/media
+      - /mnt/media/tdarr_temp:/temp    # <--- CRITICAL: Temp must be on the same drive as media
+    ports:
+      - 8265:8265
+      - 8266:8266
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  tdarr-node:
+    image: ghcr.io/haveagitgat/tdarr_node:latest
+    container_name: tdarr-node
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - serverIP=tdarr
+      - serverPort=8266
+      - nodeName=thinkpad-node
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128  # <--- iGPU Passthrough
+    group_add:
+      - "991"                                   # <--- iGPU Render Group
+    volumes:
+      - ${ROOT_DIR}/tdarr/configs:/app/configs
+      - ${ROOT_DIR}/tdarr/logs:/app/logs
+      - /mnt/media:/media
+      - /mnt/media/tdarr_temp:/temp
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
