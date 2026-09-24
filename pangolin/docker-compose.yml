@@ -3,6 +3,8 @@ services:
     image: fosrl/pangolin-cli
     container_name: pangolin-site
     restart: unless-stopped
+    ap_add:
+      - NET_ADMIN
     environment:
       - PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
       - SITE_ID=${SITE_ID}
