@@ -41,3 +41,8 @@
 !/tdarr
 /tdarr/*
 !/tdarr/docker-compose.yml
+
+# Streaming stack
+!/streaming
+/streaming/*
+!/streaming/docker-compose.yml
