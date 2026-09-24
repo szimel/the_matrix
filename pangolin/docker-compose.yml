@@ -26,8 +26,8 @@ services:
       - TZ=${TZ}
     volumes:
       # Map specific files instead of the whole directory so we don't break Netdata's internal files
-      - ${ROOT_DIR}/pangolin/netdata/config/netdata.conf:/etc/netdata/netdata.conf:ro
-      - ${ROOT_DIR}/pangolin/netdata/config/stream.conf:/etc/netdata/stream.conf:ro
+      - ${ROOT_DIR}/netdata/config/netdata.conf:/etc/netdata/netdata.conf:ro
+      - ${ROOT_DIR}/netdata/config/stream.conf:/etc/netdata/stream.conf:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
