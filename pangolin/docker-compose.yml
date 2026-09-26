@@ -12,36 +12,6 @@ services:
     networks:
       - caddy_net
 
-  netdata-child:
-    image: netdata/netdata:latest
-    container_name: netdata-child
-    hostname: the-matrix
-    restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    environment:
-      - TZ=${TZ}
-    volumes:
-      # Map specific files instead of the whole directory so we don't break Netdata's internal files
-      - ${ROOT_DIR}/netdata/config/netdata.conf:/etc/netdata/netdata.conf:ro
-      - ${ROOT_DIR}/netdata/config/stream.conf:/etc/netdata/stream.conf:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - /sys:/host/sys:ro
-      - /proc:/host/proc:ro
-      - /dev:/host/dev:ro
-    devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128 # Intel iGPU passthrough for metrics
-    group_add:
-      - "991" # Intel Render Group ID
-    networks:
-      - caddy_net
-
 networks:
   caddy_net:
     external: true
