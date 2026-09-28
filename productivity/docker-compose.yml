@@ -10,7 +10,7 @@ services:
     networks:
       - caddy_net
 
-  productivity-feed:
+  youtube-replacer:
     image: ghcr.io/szimel/youtube-lobotomy:main
     container_name: youtube-replacer
     restart: unless-stopped
