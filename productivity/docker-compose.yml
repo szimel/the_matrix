@@ -10,6 +10,21 @@ services:
     networks:
       - caddy_net
 
+  productivity-feed:
+    image: ghcr.io/szimel/youtube-lobotomy:latest
+    container_name: youtube-replacer
+    restart: unless-stopped
+    ports:
+      - 9090:9090
+    environment:
+      JEV_API_KEY: ${JEV_API_KEY}
+      PUID: ${PUID}
+      PGID: ${PGID}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - caddy_net
+
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: vaultwarden
