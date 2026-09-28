@@ -11,7 +11,7 @@ services:
       - caddy_net
 
   productivity-feed:
-    image: ghcr.io/szimel/youtube-lobotomy:latest
+    image: ghcr.io/szimel/youtube-lobotomy:Latest
     container_name: youtube-replacer
     restart: unless-stopped
     ports:
