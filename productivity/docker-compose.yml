@@ -21,7 +21,7 @@ services:
       PUID: ${PUID}
       PGID: ${PGID}
     volumes:
-      - ./data:/app/data
+      - ${ROOT_DIR}/productivity-feed/data:/app/data
     networks:
       - caddy_net
 
