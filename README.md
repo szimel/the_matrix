@@ -98,11 +98,11 @@ When editing `docker-compose.yml` files, pay close attention to paths:
 
 * **A relative path in `volumes:` is a BUG.** It resolves against Dockhand's CWD inside its own container (`/app/data`, i.e. `/home/abed_23/apps/dockhand/data` on the host), not against the stack folder. Worse, every relative `./data` in every stack collapses to that same directory, so two stacks using one would collide.
 
-**There is no `${ROOT_DIR}` any more.** It used to mean "this stack's folder" — a different value for every stack, since each compose file lives in its own directory — and two stacks repeated their own name after it (`streaming/streaming`, `tdarr/tdarr`), so the variable carried three shapes at once. Paths are now spelled out in full. The rule is simple: an app's data lives beside its compose file, under its stack folder.
+**There is no `${ROOT_DIR}` any more.** It was one variable carrying a different meaning per stack — each compose file lives in its own directory, so `${ROOT_DIR}/X` meant `/home/abed_23/apps/<stack>/X`, except in `tdarr` where it meant `/home/abed_23/apps/tdarr/tdarr/X`. Paths are now spelled out in full, so there is nothing to misread.
 
-Two known deviations from that layout:
+Two known deviations from `/home/abed_23/apps/<stack>/<app>/...`:
 * `actual-server` mounts `/mnt/actual-data:/data` — a separate mount, not under `/home/abed_23/apps`.
-* `streaming` and `tdarr` carry a doubled folder name (`/home/abed_23/apps/streaming/streaming/jellyfin/config`, `/home/abed_23/apps/tdarr/tdarr/tdarr/configs`). That is how they have always resolved; the paths were written to preserve it rather than silently relocate live config directories.
+* `tdarr` repeats its own name: `/home/abed_23/apps/tdarr/tdarr/configs`. That is where its configs have always lived; the absolute paths preserve it rather than relocating live config directories.
 
 ### 3. Environment Variables (`.env`)
 Secrets (API tokens, VPN keys, host paths) are **never** stored in GitHub. They are manually entered into the Dockhand Web UI under the **Environment / .env** tab for each specific stack. Dockhand encrypts them and injects them at runtime.
@@ -110,7 +110,7 @@ Secrets (API tokens, VPN keys, host paths) are **never** stored in GitHub. They 
 Variables referenced across the stacks: `PUID`, `PGID`, `TZ`, `MULLVAD_PRIVATE_KEY`, `MULLVAD_ADDRESSES`, `SERVER_CITY`, `VAULTWARDEN_DOMAIN`, `VIKUNJA_URL`, `MEALIE_URL`, `DISCORD_WEBHOOK_URL`, `JEV_API_KEY`, `BESZEL_APP_URL`, `BESZEL_HUB_URL`, `BESZEL_TOKEN`, `BESZEL_KEY`, `CLOUDFLARE_TUNNEL_TOKEN`, `PANGOLIN_ENDPOINT`, `SITE_ID`, `SITE_SECRET`. `CLOUDFLARE_API_TOKEN` is used by Caddy, not by anything in this repo. `ROOT_DIR` is no longer used by any stack and can be deleted from Dockhand.
 
 ### 4. Tdarr pipeline
-Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/tdarr/configs` (the name repeats three times) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/media/tdarr_temp` must stay on the same drive as `/mnt/media` or transcodes fall back to slow cross-device copies.
+Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/configs` (the stack folder repeats itself once) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/media/tdarr_temp` must stay on the same drive as `/mnt/media` or transcodes fall back to slow cross-device copies.
 
 ### 5. productivity-feed: the container port is always 8080
 `productivity-feed` is the only stack whose service name and `container_name` differ

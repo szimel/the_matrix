@@ -10,9 +10,9 @@ services:
       - serverPort=8266
       - webUIPort=8265
     volumes:
-      - /home/abed_23/apps/tdarr/tdarr/tdarr/server:/app/server
-      - /home/abed_23/apps/tdarr/tdarr/tdarr/configs:/app/configs
-      - /home/abed_23/apps/tdarr/tdarr/tdarr/logs:/app/logs
+      - /home/abed_23/apps/tdarr/tdarr/server:/app/server
+      - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
+      - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
       - /mnt/media:/media
       - /mnt/media/tdarr_temp:/temp    # <--- CRITICAL: Temp must be on the same drive as media
     ports:
@@ -37,8 +37,8 @@ services:
     group_add:
       - "991"                                   # <--- iGPU Render Group
     volumes:
-      - /home/abed_23/apps/tdarr/tdarr/tdarr/configs:/app/configs
-      - /home/abed_23/apps/tdarr/tdarr/tdarr/logs:/app/logs
+      - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
+      - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
       - /mnt/media:/media
       - /mnt/media/tdarr_temp:/temp
     restart: unless-stopped

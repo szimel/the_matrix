@@ -12,7 +12,7 @@ services:
       - 1.1.1.1
       - 8.8.8.8
     volumes:
-      - /home/abed_23/apps/streaming/streaming/jellyseerr/config:/app/config 
+      - /home/abed_23/apps/streaming/jellyseerr/config:/app/config 
     ports:
       - 5055:5055
     restart: unless-stopped
@@ -32,7 +32,7 @@ services:
     group_add:
       - "991"
     volumes:
-      - /home/abed_23/apps/streaming/streaming/jellyfin/config:/config
+      - /home/abed_23/apps/streaming/jellyfin/config:/config
       - /mnt/media:/media:ro
     ports:
       - 8096:8096
