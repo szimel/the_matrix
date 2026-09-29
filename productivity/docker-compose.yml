@@ -24,7 +24,7 @@ services:
       PUID: ${PUID}
       PGID: ${PGID}
     volumes:
-      - ${ROOT_DIR}/productivity-feed/data:/app/data
+      - /home/abed_23/apps/productivity/productivity-feed/data:/app/data
     networks:
       caddy_net:
         # The service is named productivity-feed but the container is not, so give
@@ -41,7 +41,7 @@ services:
       - SIGNUPS_ALLOWED=false
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/vaultwarden/data:/data
+      - /home/abed_23/apps/productivity/vaultwarden/data:/data
     ports:
       - 8080:80
     restart: unless-stopped
@@ -60,8 +60,8 @@ services:
     ports:
       - 3456:3456
     volumes:
-      - ${ROOT_DIR}/vikunja/files:/app/vikunja/files
-      - ${ROOT_DIR}/vikunja/db:/db
+      - /home/abed_23/apps/productivity/vikunja/files:/app/vikunja/files
+      - /home/abed_23/apps/productivity/vikunja/db:/db
     restart: unless-stopped
     networks:
       - caddy_net
@@ -105,7 +105,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/freshrss/config:/config
+      - /home/abed_23/apps/productivity/freshrss/config:/config
     ports:
       - 8087:80
     restart: unless-stopped
@@ -122,7 +122,7 @@ services:
       - MEALIE_URL=${MEALIE_URL}
       - HTTP_ALLOW_LIST=notifications
     volumes:
-      - ${ROOT_DIR}/mealie/data:/app/data/
+      - /home/abed_23/apps/productivity/mealie/data:/app/data/
     ports:
       - 9925:9000 # Maps Mealie's internal port 9000 to 9925 on your host
     restart: unless-stopped

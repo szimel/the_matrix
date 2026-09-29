@@ -29,7 +29,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/transmission/config:/config
+      - /home/abed_23/apps/media/transmission/config:/config
       - /mnt/media:/media
     network_mode: "service:gluetun"
     restart: unless-stopped
@@ -42,7 +42,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/prowlarr/config:/config
+      - /home/abed_23/apps/media/prowlarr/config:/config
     ports:
       - 9696:9696
     restart: unless-stopped
@@ -57,7 +57,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/radarr/config:/config
+      - /home/abed_23/apps/media/radarr/config:/config
       - /mnt/media:/media
     ports:
       - 7878:7878
@@ -73,7 +73,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${ROOT_DIR}/sonarr/config:/config
+      - /home/abed_23/apps/media/sonarr/config:/config
       - /mnt/media:/media
     ports:
       - 8989:8989
@@ -102,7 +102,7 @@ services:
       - TZ=${TZ}
       - PORT=11011
     volumes:
-      - ${ROOT_DIR}/cleanuparr/config:/config
+      - /home/abed_23/apps/media/cleanuparr/config:/config
     ports:
       - 11011:11011
     networks:

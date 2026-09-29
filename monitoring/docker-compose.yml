@@ -6,8 +6,8 @@ services:
     environment:
       APP_URL: ${BESZEL_APP_URL}
     volumes:
-      - ${ROOT_DIR}/beszel_data:/beszel_data
-      - ${ROOT_DIR}/beszel_socket:/beszel_socket
+      - /home/abed_23/apps/monitoring/beszel_data:/beszel_data
+      - /home/abed_23/apps/monitoring/beszel_socket:/beszel_socket
     networks:
       - caddy_net
 
@@ -17,8 +17,8 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ${ROOT_DIR}/beszel_agent_data:/var/lib/beszel-agent
-      - ${ROOT_DIR}/beszel_socket:/beszel_socket
+      - /home/abed_23/apps/monitoring/beszel_agent_data:/var/lib/beszel-agent
+      - /home/abed_23/apps/monitoring/beszel_socket:/beszel_socket
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       LISTEN: /beszel_socket/beszel.sock
