@@ -15,7 +15,10 @@ services:
     container_name: youtube-replacer
     restart: unless-stopped
     ports:
-      - 9090:9090
+      # The image binds gunicorn to PORT=8080 and its healthcheck probes the same
+      # value, so the container side must stay 8080. Publishing 9090:9090 left the
+      # host port dead and made Caddy answer 502.
+      - 9090:8080
     environment:
       JEV_API_KEY: ${JEV_API_KEY}
       PUID: ${PUID}
@@ -23,7 +26,12 @@ services:
     volumes:
       - ${ROOT_DIR}/productivity-feed/data:/app/data
     networks:
-      - caddy_net
+      caddy_net:
+        # The service is named productivity-feed but the container is not, so give
+        # the container the service name as a DNS alias on caddy_net. This is what
+        # makes the Caddyfile's `reverse_proxy productivity-feed:9090` resolve.
+        aliases:
+          - productivity-feed
 
   vaultwarden:
     image: vaultwarden/server:latest

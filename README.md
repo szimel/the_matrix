@@ -44,7 +44,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | tdarr | tdarr | `ghcr.io/haveagitgat/tdarr` | 8265, 8266 | server, no iGPU |
 | tdarr | tdarr-node | `ghcr.io/haveagitgat/tdarr_node` | — | iGPU passthrough, node name `thinkpad-node` |
 | productivity | actual-server | `actualbudget/actual-server` | 5006 | |
-| productivity | productivity-feed | `ghcr.io/szimel/youtube-lobotomy:main` | 9090 | container name is `youtube-replacer`, not the service name |
+| productivity | productivity-feed | `ghcr.io/szimel/youtube-lobotomy:main` | 9090 → 8080 | container name is `youtube-replacer`; app listens on 8080 (see gotcha 5) |
 | productivity | vaultwarden | `vaultwarden/server` | 8080 → 80 | |
 | productivity | vikunja | `vikunja/vikunja` | 3456 | |
 | productivity | notifications | built from `./notifications` | 8001 | custom Python, `python:3.11-alpine` |
@@ -112,6 +112,23 @@ Variables referenced across the stacks: `ROOT_DIR`, `PUID`, `PGID`, `TZ`, `MULLV
 
 ### 4. Tdarr pipeline
 Tdarr configs live in `${ROOT_DIR}/tdarr/tdarr/configs` (note the doubled `tdarr/tdarr`) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/media/tdarr_temp` must stay on the same drive as `/mnt/media` or transcodes fall back to slow cross-device copies.
+
+### 5. productivity-feed: the container port is always 8080
+`productivity-feed` is the only stack whose service name and `container_name` differ
+(`productivity-feed` vs `youtube-replacer`). Two consequences, both of which have bitten:
+
+* **Container port stays 8080.** The image hardcodes `PORT=8080` for gunicorn and its
+  healthcheck probes the same variable. The host port is whatever we like (`9090`), so the
+  mapping must be `9090:8080`. Publishing `9090:9090` leaves nothing on the host port and
+  Caddy answers **502** — which is exactly what happened the first time.
+* **DNS alias required.** Compose gives a container its *service* name on the network, so
+  `productivity-feed` would resolve — but only if `container_name` were left unset. Because
+  `container_name: youtube-replacer` overrides it, the compose file sets
+  `networks.caddy_net.aliases: [productivity-feed]` so the Caddyfile's
+  `reverse_proxy productivity-feed:9090` keeps working.
+
+If it 502s again: `docker ps --filter name=youtube-replacer` should read `0.0.0.0:9090->8080/tcp`,
+and `docker run --rm --network caddy_net alpine nslookup productivity-feed` must return an address.
 
 ## 🚀 How to update a service
 1. Edit the `docker-compose.yml` or script locally or directly on GitHub, add environment variables via Dockhand.
