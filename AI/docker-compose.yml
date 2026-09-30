@@ -11,11 +11,11 @@ services:
       # - OLLAMA_BASE_URL=http://cloudy-matrix:11434
 
       # ── Lean-out: everything model-ish is remote via OpenRouter ──
-      - ENABLE_TTS_API_SERVER: "false"   # HIGH confidence this is the var + default
-      - ENABLE_IMAGE_GENERATION: "false" # HIGH — already default, keep explicit
-      - WHISPER_MODEL: "tiny"            # HIGH on name, MEDIUM that "tiny" is the value
+      - ENABLE_TTS_API_SERVER: false   # HIGH confidence this is the var + default
+      - ENABLE_IMAGE_GENERATION: false # HIGH — already default, keep explicit
+      - WHISPER_MODEL: tiny   #  HIGH on name, MEDIUM that "tiny" is the value
       # ENABLE_RAG_LOCAL_WIKI: "false"   # HIGH
-      - UVICORN_WORKERS: "1"             # HIGH — each extra worker is a full copy of the app
+      - UVICORN_WORKERS: 1             # HIGH — each extra worker is a full copy of the app
 
       # document extraction -> tika (the default pypdf path leaks memory)
       - CONTENT_EXTRACTION_ENGINE=tika
