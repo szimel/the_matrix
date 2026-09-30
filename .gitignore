@@ -46,3 +46,8 @@
 !/streaming
 /streaming/*
 !/streaming/docker-compose.yml
+
+# AI stack
+!/AI
+/AI/*
+!/AI/docker-compose.yml

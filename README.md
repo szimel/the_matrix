@@ -20,6 +20,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 * **`/tdarr`** - Tdarr server + `tdarr-node` (iGPU-accelerated transcoding).
 * **`/monitoring`** - Beszel + `beszel-agent` (resource stats) and Cloudflared (Zero Trust Tunnel).
 * **`/pangolin`** - `pangolin-site`, the WireGuard tunnel endpoint for public media ingress.
+* **`/AI`** - Open WebUI. The only web stack with **no Caddy hostname**: it is reached directly over Tailscale or the LAN on port 8081, and talks to Ollama running on Cloudy Matrix.
 * **`/caddy`** - Reverse proxy. **Not tracked** (Caddyfile is host-only, as are its `cloudflare` DNS-plugin build credentials).
 * **`/dockhand`** - The GitOps manager. **Not tracked** — standalone stack, deployed by hand.
 
@@ -56,8 +57,9 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | monitoring | beszel-agent | `henrygd/beszel-agent` | — | `network_mode: host`, talks to the hub over a unix socket |
 | monitoring | cloudflared | `cloudflare/cloudflared` | — | `tunnel run` with `TUNNEL_TOKEN` |
 | pangolin | pangolin-site | `fosrl/pangolin-cli` | — | `NET_ADMIN` required for the tunnel interface |
+| AI | open-webui | `ghcr.io/open-webui/open-webui:main` | 8081 → 8080 | standard image — not `:slim`, `:cuda` or `:ollama`; **no Caddy hostname**, Tailscale/LAN only |
 
-Ports here are the **host-side** mappings. Reverse-proxy hostnames are defined in the host-only Caddyfile, not in this repo. For reference, that Caddyfile currently maps: `movies`→jellyfin, `radarr`, `sonarr`, `prowlarr`, `seerr`, `transmission`→gluetun:9091, `logs`→beszel:8090, `music`→navidrome, `slskd`, `soulsync`, `budget`→actual-server, `dockhand`, `passwords`→vaultwarden:80, `tasks`→vikunja, `cleanuparr`, `omni`→omni-tools:80, `pdf`→bentopdf:8080, `rss`→freshrss:80, `meals`→mealie:9000, `tdarr`→tdarr:8265, `youtube`→productivity-feed:9090.
+Ports here are the **host-side** mappings. Reverse-proxy hostnames are defined in the host-only Caddyfile, not in this repo. For reference, that Caddyfile currently maps: `movies`→jellyfin, `radarr`, `sonarr`, `prowlarr`, `seerr`, `transmission`→gluetun:9091, `logs`→beszel:8090, `music`→navidrome, `slskd`, `soulsync`, `budget`→actual-server, `dockhand`, `passwords`→vaultwarden:80, `tasks`→vikunja, `cleanuparr`, `omni`→omni-tools:80, `pdf`→bentopdf:8080, `rss`→freshrss:80, `meals`→mealie:9000, `tdarr`→tdarr:8265, `youtube`→productivity-feed:9090. `open-webui` is deliberately **absent** from that list — it has no public hostname and is reached directly on port 8081.
 
 ### Hardware acceleration
 
@@ -107,7 +109,7 @@ Two known deviations from `/home/abed_23/apps/<stack>/<app>/...`:
 ### 3. Environment Variables (`.env`)
 Secrets (API tokens, VPN keys, host paths) are **never** stored in GitHub. They are manually entered into the Dockhand Web UI under the **Environment / .env** tab for each specific stack. Dockhand encrypts them and injects them at runtime.
 
-Variables referenced across the stacks: `PUID`, `PGID`, `TZ`, `MULLVAD_PRIVATE_KEY`, `MULLVAD_ADDRESSES`, `SERVER_CITY`, `VAULTWARDEN_DOMAIN`, `VIKUNJA_URL`, `MEALIE_URL`, `DISCORD_WEBHOOK_URL`, `JEV_API_KEY`, `BESZEL_APP_URL`, `BESZEL_HUB_URL`, `BESZEL_TOKEN`, `BESZEL_KEY`, `CLOUDFLARE_TUNNEL_TOKEN`, `PANGOLIN_ENDPOINT`, `SITE_ID`, `SITE_SECRET`. `CLOUDFLARE_API_TOKEN` is used by Caddy, not by anything in this repo. `ROOT_DIR` is no longer used by any stack and can be deleted from Dockhand.
+Variables referenced across the stacks: `PUID`, `PGID`, `TZ`, `MULLVAD_PRIVATE_KEY`, `MULLVAD_ADDRESSES`, `SERVER_CITY`, `VAULTWARDEN_DOMAIN`, `VIKUNJA_URL`, `MEALIE_URL`, `DISCORD_WEBHOOK_URL`, `JEV_API_KEY`, `BESZEL_APP_URL`, `BESZEL_HUB_URL`, `BESZEL_TOKEN`, `BESZEL_KEY`, `CLOUDFLARE_TUNNEL_TOKEN`, `PANGOLIN_ENDPOINT`, `SITE_ID`, `SITE_SECRET`, `WEBUI_SECRET_KEY`. `CLOUDFLARE_API_TOKEN` is used by Caddy, not by anything in this repo. `ROOT_DIR` is no longer used by any stack and can be deleted from Dockhand. `WEBUI_SECRET_KEY` must be a **fixed** random value — generate one with `openssl rand -hex 32` and paste it into the `/AI` stack's environment in Dockhand; changing it later logs everyone out of Open WebUI. `OLLAMA_BASE_URL` is not needed yet and will be added once Ollama lands on Cloudy Matrix.
 
 ### 4. Tdarr pipeline
 Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/configs` (the stack folder repeats itself once) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/media/tdarr_temp` must stay on the same drive as `/mnt/media` or transcodes fall back to slow cross-device copies.
@@ -128,6 +130,17 @@ Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/configs` (the stack folder
 
 If it 502s again: `docker ps --filter name=youtube-replacer` should read `0.0.0.0:9090->8080/tcp`,
 and `docker run --rm --network caddy_net alpine nslookup productivity-feed` must return an address.
+
+### 6. Open WebUI is not a LinuxServer image
+
+Every other stack here uses `PUID`/`PGID`, because those images are built by LinuxServer.io and honour them. `ghcr.io/open-webui/open-webui` is **not** one of those — it exposes `UID`/`GID` as *build* arguments and otherwise runs as root (`USER 0:0`). Setting `PUID`/`PGID` in `/AI` would be silently ignored, so the compose file deliberately leaves them out. Consequence: `/home/abed_23/apps/AI/open-webui/data` will be owned by `root` on the host, which is fine while nothing else needs to read it.
+
+Two port facts, both dictated by the image:
+
+* The container side is fixed at **8080** (`ENV PORT=8080`), and the image already ships a `HEALTHCHECK` against `/health`. Do not add a second healthcheck, and do not change the container-side port — publishing `8081:8081` leaves the host port dead and the UI unreachable.
+* The host side is **8081**, because 8080 is already vaultwarden and 3000 is Dockhand.
+
+Unlike every other web stack, `/AI` has **no Caddyfile entry**, so it is reached at `http://<tailscale-ip>:8081` rather than a `*.bigdaddyz.com` name. That is deliberate: Open WebUI can execute arbitrary Python through its Tools and Functions features, so it stays off the public internet and is only usable from inside the tailnet or the LAN.
 
 ## 🚀 How to update a service
 1. Edit the `docker-compose.yml` or script locally or directly on GitHub, add environment variables via Dockhand.
