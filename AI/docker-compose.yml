@@ -63,8 +63,7 @@ services:
     volumes:
         - /home/abed_23/apps/AI/open-terminal:/home/user
     networks:
-        caddy_net:
-          external: true
+        caddy_net
     mem_limit: 1g            # hard ceiling
     mem_reservation: 256m
 
