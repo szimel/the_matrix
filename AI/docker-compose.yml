@@ -9,11 +9,49 @@ services:
       # to this stack's Dockhand environment. Use the cloud box's Tailscale name or
       # 100.x.y.z address -- never its public IP, because Ollama has no auth at all.
       # - OLLAMA_BASE_URL=http://cloudy-matrix:11434
+
+      # document extraction -> tika (the default pypdf path leaks memory)
+      - CONTENT_EXTRACTION_ENGINE=tika
+      - TIKA_SERVER_URL=http://tika:9998
+
+      # sqlite footprint
+      - DATABASE_POOL_SIZE=8
+      - DATABASE_SQLITE_PRAGMA_CACHE_SIZE=-2000
+      - DATABASE_SQLITE_PRAGMA_MMAP_SIZE=0
+      - DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL=300
+      - ENABLE_REALTIME_CHAT_SAVE=false
+
+      # audio / embeddings -> OpenRouter, no local models
+      - AUDIO_STT_ENGINE=openai
+      - AUDIO_STT_OPENAI_API_KEY=${OPENROUTER_API_KEY}
+      - AUDIO_STT_OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+      - BYPASS_PYDUB_PREPROCESSING=true
+
+      # background task inference off
+      - ENABLE_FOLLOW_UP_GENERATION=false
+      - ENABLE_AUTOCOMPLETE_GENERATION=false
+
+      # openrouter has ~1000 models
+      - ENABLE_BASE_MODELS_CACHE=true
+      - MODELS_CACHE_TTL=300
+
+      # cpu
+      - ENABLE_COMPRESSION_MIDDLEWARE=false
+      - ENABLE_ORJSON=true
     volumes:
       - /home/abed_23/apps/AI/open-webui/data:/app/backend/data
     ports:
       - 8081:8080
     restart: unless-stopped
+    networks:
+      - caddy_net
+
+  tika:
+    image: apache/tika:<pinned>-3.x-full   # verify the exact tag on Docker Hub
+    container_name: tika
+    restart: unless-stopped
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx512m
     networks:
       - caddy_net
 
