@@ -1,23 +1,8 @@
 services:
   open-webui:
-    # Standard image ("main"). This is the ~1.5 GB variant that bundles the local
-    # embedding and speech-to-text models. Deliberately NOT:
-    #   :slim    - 176 MB, but no local embeddings, no PDF/Office readers, no
-    #              headless browser, and it refuses to start on MySQL.
-    #   :cuda    - Nvidia GPU support; The Matrix has an Intel iGPU.
-    #   :ollama  - bundles Ollama inside this container; our Ollama lives on
-    #              Cloudy Matrix and is reached over Tailscale instead.
-    # "main" rolls forward and picks up security fixes automatically. It is the
-    # same rolling image as ":latest" -- note that for this project ":latest"
-    # does NOT mean "newest stable release". To freeze it instead, pin a version
-    # tag such as :0.11.4 and bump it by hand.
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     environment:
-      # REQUIRED, and it must never change once set. With no fixed key the app
-      # generates a random one at startup, so every container recreation signs
-      # everyone out. Generate with: openssl rand -hex 32
-      # Enter it in Dockhand -> this stack -> Environment/.env. Never in this file.
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - TZ=${TZ}
       # Once Ollama exists on Cloudy Matrix, uncomment this and add OLLAMA_BASE_URL
@@ -25,17 +10,8 @@ services:
       # 100.x.y.z address -- never its public IP, because Ollama has no auth at all.
       # - OLLAMA_BASE_URL=http://cloudy-matrix:11434
     volumes:
-      # Absolute host path (repo rule): chats, users, settings and downloaded
-      # model caches all live here. A relative path here would be a BUG.
       - /home/abed_23/apps/AI/open-webui/data:/app/backend/data
     ports:
-      # Host 8081 -> container 8080.
-      # The container side MUST stay 8080: the image hardcodes ENV PORT=8080 and
-      # its built-in healthcheck probes that same value. Publishing 8081:8081
-      # would leave the host port dead.
-      # Host side is 8081 because 8080 is already taken by vaultwarden and 3000
-      # by Dockhand. No Caddy hostname is defined for this stack, so it is reached
-      # at http://<the-matrix-tailscale-ip>:8081 (or http://<lan-ip>:8081).
       - 8081:8080
     restart: unless-stopped
     networks:
