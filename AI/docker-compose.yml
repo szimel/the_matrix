@@ -62,10 +62,11 @@ services:
         - OPEN_TERMINAL_API_KEY=${OPEN_TERMINAL_API_KEY}
     volumes:
         - /home/abed_23/apps/AI/open-terminal:/home/user
-    networks:
-        caddy_net
     mem_limit: 1g            # hard ceiling
-    mem_reservation: 256m
+    mem_reservation: 256m    
+    networks:
+      - caddy_net
+ 
 
 networks:
   caddy_net:
