@@ -47,13 +47,26 @@ services:
       - caddy_net
 
   tika:
-    image: apache/tika:latest  # verify the exact tag on Docker Hub
+    image: apache/tika:latest
     container_name: tika
     restart: unless-stopped
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx512m
     networks:
       - caddy_net
+
+  open-terminal:
+    image: ghcr.io/open-webui/open-terminal:latest
+    container_name: open-terminal
+    environment:
+        - OPEN_TERMINAL_API_KEY=${OPEN_TERMINAL_API_KEY}
+    volumes:
+        - /home/abed_23/apps/AI/open-terminal:/home/user
+    networks:
+        caddy_net:
+          external: true
+    mem_limit: 1g            # hard ceiling
+    mem_reservation: 256m
 
 networks:
   caddy_net:
