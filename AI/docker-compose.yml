@@ -3,7 +3,6 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     environment:
-      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - TZ=${TZ}
       # Once Ollama exists on Cloudy Matrix, uncomment this and add OLLAMA_BASE_URL
       # to this stack's Dockhand environment. Use the cloud box's Tailscale name or
@@ -30,7 +29,7 @@ services:
 
       # audio / embeddings -> OpenRouter, no local models
       - AUDIO_STT_ENGINE=openai
-      - AUDIO_STT_OPENAI_API_KEY=${WEBUI_SECRET_KEY}
+      - AUDIO_STT_OPENAI_API_KEY=${OPENROUTER_API_KEY}
       - AUDIO_STT_OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
       - BYPASS_PYDUB_PREPROCESSING=true
 
