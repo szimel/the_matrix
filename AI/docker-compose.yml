@@ -47,7 +47,7 @@ services:
       - caddy_net
 
   tika:
-    image: apache/tika:<pinned>-3.x-full   # verify the exact tag on Docker Hub
+    image: apache/tika:latest  # verify the exact tag on Docker Hub
     container_name: tika
     restart: unless-stopped
     environment:
