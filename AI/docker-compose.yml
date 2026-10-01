@@ -10,9 +10,7 @@ services:
       # - OLLAMA_BASE_URL=http://cloudy-matrix:11434
 
       # ── Lean-out: everything model-ish is remote via OpenRouter ──
-      - ENABLE_TTS_API_SERVER=true   # HIGH confidence this is the var + default
       - ENABLE_IMAGE_GENERATION=false # HIGH — already default, keep explicit
-      - WHISPER_MODEL=tiny   #  HIGH on name, MEDIUM that "tiny" is the value
       # ENABLE_RAG_LOCAL_WIKI: "false"   # HIGH
       - UVICORN_WORKERS=1             # HIGH — each extra worker is a full copy of the app
 
@@ -27,14 +25,6 @@ services:
       - DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL=300
       - ENABLE_REALTIME_CHAT_SAVE=false
       - BYPASS_PYDUB_PREPROCESSING=true
-
-      # background task inference off
-      - ENABLE_FOLLOW_UP_GENERATION=false
-      - ENABLE_AUTOCOMPLETE_GENERATION=false
-
-      # openrouter has ~1000 models
-      - ENABLE_BASE_MODELS_CACHE=true
-      - MODELS_CACHE_TTL=300
 
       # cpu
       - ENABLE_COMPRESSION_MIDDLEWARE=false
