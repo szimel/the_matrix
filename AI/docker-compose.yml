@@ -10,7 +10,7 @@ services:
       # - OLLAMA_BASE_URL=http://cloudy-matrix:11434
 
       # ── Lean-out: everything model-ish is remote via OpenRouter ──
-      - ENABLE_TTS_API_SERVER=false   # HIGH confidence this is the var + default
+      - ENABLE_TTS_API_SERVER=true   # HIGH confidence this is the var + default
       - ENABLE_IMAGE_GENERATION=false # HIGH — already default, keep explicit
       - WHISPER_MODEL=tiny   #  HIGH on name, MEDIUM that "tiny" is the value
       # ENABLE_RAG_LOCAL_WIKI: "false"   # HIGH
@@ -26,11 +26,6 @@ services:
       - DATABASE_SQLITE_PRAGMA_MMAP_SIZE=0
       - DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL=300
       - ENABLE_REALTIME_CHAT_SAVE=false
-
-      # audio / embeddings -> OpenRouter, no local models
-      - AUDIO_STT_ENGINE=openai
-      - AUDIO_STT_OPENAI_API_KEY=${OPENROUTER_API_KEY}
-      - AUDIO_STT_OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
       - BYPASS_PYDUB_PREPROCESSING=true
 
       # background task inference off
