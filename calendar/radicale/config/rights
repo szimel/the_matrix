@@ -1,0 +1,37 @@
+# =============================================================================
+# Radicale rights — /etc/radicale/rights
+# Host source: ${ROOT_DIR}/calendar/radicale/config/rights
+# No secrets here.
+#
+# Rules are regexes matched against the username and the collection path.
+# The FIRST matching section wins. No match = access denied.
+# Paths have no leading or trailing slash, so the root path is empty.
+# {user} expands to the username from the section that matched.
+#
+# IMPORTANT — how sharing interacts with this file:
+#   You do NOT need a rule per shared calendar. When a request arrives for a
+#   shared path (e.g. /kamrie/family/), Radicale's sharing layer rewrites it to
+#   the OWNER's real path (/abed/family/) and re-runs the rights check as the
+#   OWNER, then applies the share's own Permissions value on top.
+#   The generic "[calendars]" rule below is therefore all that is required.
+# =============================================================================
+
+# Let any authenticated user discover the server root.
+[root]
+user: .+
+collection:
+permissions: R
+
+# Each user owns their own principal collection (their "/username/" home).
+[principal]
+user: .+
+collection: {user}
+permissions: RW
+
+# Each user can create and manage their own calendars and address books.
+# This also covers any calendar shared TO them, once the sharing layer has
+# rewritten the path and re-checked it against the owner.
+[calendars]
+user: .+
+collection: {user}/[^/]+
+permissions: rw

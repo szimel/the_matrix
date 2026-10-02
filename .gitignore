@@ -1,58 +1,41 @@
-# 1. Ignore everything in the root directory by default
-/*
+# Ignore everything in the root directory
+*
 
-# 2. Allow Git to track top-level root config files
+# Allow all first-level directories (so Git can look inside them)
+!*/
+
+# Ignore everything inside those first-level directories
+*/*
+
+# Allow .yml files inside those first-level directories
+!*/*.yml
+
+
+# Allow Git to track top-level root config files
 !.gitignore
 !README.md
 
-# Media - arr stack
-!/media
-/media/*
-!/media/docker-compose.yml
-
-# Music stack
-!/music
-/music/*
-!/music/docker-compose.yml
-!/music/slskd
-/music/slskd/*
-!/music/slskd/slskd.example.yml
-
-# Productivity stack
-!/productivity
-/productivity/*
-!/productivity/docker-compose.yml
+# custom notification build
 !/productivity/notifications
 /productivity/notifications/*
 !/productivity/notifications/Dockerfile
 !/productivity/notifications/main.py
 
-# Monitoring stack
-!/monitoring
-/monitoring/*
-!/monitoring/docker-compose.yml
+# ignore caddy and dockhand .yml's
+/caddy/docker-compose.yml
+/dockhand/docker-compose.yml
 
-# Pangolin stack
-!/pangolin
-/pangolin/*
-!/pangolin/docker-compose.yml
-
-# Tdarr
-!/tdarr
-/tdarr/*
-!/tdarr/docker-compose.yml
-
-# Streaming stack
-!/streaming
-/streaming/*
-!/streaming/docker-compose.yml
-
-# AI stack
-!/AI
-/AI/*
-!/AI/docker-compose.yml
-
-# Calendar stack
-!/calendar
-/calendar/*
-!/calendar/docker-compose.yml
+# calendar smh
+!/calendar/scripts
+/calendar/scripts/*
+!/calendar/scripts/create-user.sh
+!/calendar/caddy
+/calendar/caddy/*
+!/calendar/caddy/calendar.caddyfile
+!/calendar/radicale
+/calendar/radicale/*
+!/calendar/radicale/config
+/calendar/radicale/config/*
+!/calendar/radicale/config/config
+!/calendar/radicale/config/rights
+!/calendar/radicale/config/users.example

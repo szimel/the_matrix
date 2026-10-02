@@ -1,0 +1,52 @@
+# =============================================================================
+# Radicale configuration — /etc/radicale/config  (inside the container)
+# Host source: ${ROOT_DIR}/calendar/radicale/config/config
+# NO SECRETS IN THIS FILE. Passwords live in ./users, which is git-ignored.
+# =============================================================================
+
+[server]
+# 0 is unlimited; 8 (the default) can throttle an iPhone doing a full first sync
+# across a couple of calendars. 20 is comfortable for a household.
+max_connections = 20
+# Timeouts / size caps at stock defaults are fine for a two-person calendar.
+
+[auth]
+type = htpasswd
+htpasswd_filename = /etc/radicale/users
+# autodetect reads the hash type per line, so bcrypt and sha256 entries can be
+# mixed. NOTE: autodetect only recognises a SHA-256 hash whose salt is exactly
+# 16 characters. An 8-character salt is silently treated as PLAINTEXT and the
+# login fails with a confusing "PLAIN" warning in the log. Use htpasswd(1)
+# inside the container to generate these and you never hit that.
+htpasswd_encryption = autodetect
+
+[rights]
+# from_file is required for calendar sharing. owner_only would lock each user to
+# their own folder and the share would never appear on the other phone.
+type = from_file
+file = /etc/radicale/rights
+
+[storage]
+filesystem_folder = /var/lib/radicale/collections
+
+[web]
+type = internal
+
+# =============================================================================
+# SHARING — this is the block that makes the wife-visible calendar work.
+# Without it the "map" API returns a share that nothing ever resolves.
+# =============================================================================
+[sharing]
+type = files
+# Permit sharing one collection to another user's account (what we want).
+collection_by_map = true
+permit_create_map = true
+# Token sharing = a secret URL with no login. Off: nothing needs it here.
+collection_by_token = false
+permit_create_token = false
+# Let a recipient rename/recolour their view of the shared calendar.
+permit_properties_overlay = true
+
+[logging]
+level = info
+mask_passwords = True

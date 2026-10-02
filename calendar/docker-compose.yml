@@ -1,1 +1,55 @@
-# INIT
+# =============================================================================
+# calendar stack — Radicale (CalDAV/CardDAV + VTODO) + dav-mcp (MCP HTTP server)
+# Host: The Matrix.  Path: /home/abed_23/apps/calendar/
+# =============================================================================
+# Dockhand notes:
+#   * Every volume uses an ABSOLUTE host path via ${ROOT_DIR}. Dockhand runs
+#     compose from inside its own container, so a relative path is a bug.
+#   * Secrets come from Dockhand's per-stack Environment tab, never from Git.
+# =============================================================================
+
+services:
+  radicale:
+    image: ghcr.io/kozea/radicale:latest
+    container_name: radicale
+    restart: unless-stopped
+    volumes:
+      - /home/abed_23/apps/calendar/radicale/config:/etc/radicale
+      - /home/abed_23/apps/calendar/radicale/data:/var/lib/radicale
+    ports:
+      - "5232:5232"
+    networks:
+      - caddy_net
+    healthcheck:
+      test: ["CMD", "/app/bin/python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5232/', timeout=4).status < 500 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  calendar-dav-mcp:
+    image: ghcr.io/philflowio/dav-mcp:4.1.1
+    container_name: calendar-dav-mcp
+    restart: unless-stopped
+    depends_on:
+      radicale:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      # --- link to Radicale: done HERE, in compose, not in Open WebUI ---
+      # "radicale" is the service name above; both containers sit on caddy_net.
+      AUTH_METHOD: Basic
+      CALDAV_SERVER_URL: http://radicale:5232
+      CALDAV_USERNAME: ${CALDAV_USERNAME}
+      CALDAV_PASSWORD: ${CALDAV_PASSWORD}
+      # --- link to Open WebUI: token checked HERE, pasted into Open WebUI ---
+      BEARER_TOKEN: ${DAVMCP_BEARER_TOKEN}
+      # 3000 is taken by Dockhand, so move it.
+      PORT: "8811"
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true

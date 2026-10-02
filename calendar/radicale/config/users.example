@@ -1,0 +1,50 @@
+# =============================================================================
+# Radicale htpasswd file — EXAMPLE ONLY
+# Real file: ${ROOT_DIR}/calendar/radicale/config/users
+# This file MUST NOT be committed to Git. Add it to the allowlist exclusion.
+#
+# Format is one user per line:  username:password_hash
+#
+# ---------------------------------------------------------------------------
+# HOW TO GENERATE THE REAL FILE — use htpasswd inside the container.
+# The official image already ships apache2-utils, so this is the intended path
+# and it produces a salt Radicale's autodetect recognises.
+# ---------------------------------------------------------------------------
+#
+#   cd /home/abed_23/apps/calendar
+#   docker compose exec radicale htpasswd -B -c /etc/radicale/users abed
+#   docker compose exec radicale htpasswd -B    /etc/radicale/users kamrie
+#
+#   -B = bcrypt. Omit -c on the second command or you will wipe the first user.
+#
+# ---------------------------------------------------------------------------
+# ALTERNATIVE with openssl (no container needed)
+# ---------------------------------------------------------------------------
+#   openssl passwd -5 -salt 0123456789abcdef 'the-password'
+#
+#   -5 = SHA-256. THE SALT MUST BE EXACTLY 16 CHARACTERS.
+#   With a shorter salt, Radicale's autodetect fails the pattern match, falls
+#   back to treating the line as PLAINTEXT, and every login fails with a
+#   "htpasswd/autodetect/PLAIN" warning in the log. This is silent and the
+#   error message gives no hint. Verify after generating:
+#
+#     docker compose exec radicale cat /etc/radicale/users
+#
+#   Each line must look like:   abed:$5$0123456789abcdef$<43 chars>
+#   If the hash after $5$ is not 16 characters long, the salt was too short.
+#
+# ---------------------------------------------------------------------------
+# VERIFY IT WORKS
+# ---------------------------------------------------------------------------
+#   curl -u abed:'the-password' -X PROPFIND -H 'Depth: 0' \
+#        http://127.0.0.1:5232/abed/
+#
+#   207 = authenticated correctly.
+#   401 = wrong password, or the hash fell back to plaintext.
+#
+# =============================================================================
+
+# Placeholder hashes below are SHA-256 with 16-character salts, generated for
+# the passwords "changeme1" and "changeme2". Do not ship these.
+abed:$5$0123456789abcdef$REPLACE_ME_GENERATE_YOUR_OWN
+kamrie:$5$fedcba9876543210$REPLACE_ME_GENERATE_YOUR_OWN
