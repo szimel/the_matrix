@@ -51,3 +51,8 @@
 !/AI
 /AI/*
 !/AI/docker-compose.yml
+
+# Calendar stack
+!/calendar
+/calendar/*
+!/calendar/docker-compose.yml
