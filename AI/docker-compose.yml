@@ -60,7 +60,7 @@ services:
       - caddy_net
 
   doormouse:
-    image: ghcr.io/darksworm/doormouse:0.4.1
+    image: ghcr.io/darksworm/doormouse:latest
     container_name: doormouse
     network_mode: host
     restart: unless-stopped
