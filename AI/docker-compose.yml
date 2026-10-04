@@ -58,7 +58,14 @@ services:
     mem_reservation: 256m    
     networks:
       - caddy_net
- 
+
+  doormouse:
+    image: ghcr.io/darksworm/doormouse:0.4.1
+    container_name: doormouse
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - /home/abed_23/apps/AI/doormouse/config.toml:/app/config.toml:ro
 
 networks:
   caddy_net:
