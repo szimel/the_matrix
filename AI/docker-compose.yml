@@ -4,12 +4,7 @@ services:
     container_name: open-webui
     environment:
       - TZ=${TZ}
-      # Once Ollama exists on Cloudy Matrix, uncomment this and add OLLAMA_BASE_URL
-      # to this stack's Dockhand environment. Use the cloud box's Tailscale name or
-      # 100.x.y.z address -- never its public IP, because Ollama has no auth at all.
-      # - OLLAMA_BASE_URL=http://ollama.bigdaddyz.com:11434
-      # - AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST=180
-      # - AIOHTTP_CLIENT_TIMEOUT=600
+      - AUDIO_TTS_OPENAI_PARAMS={"response_format":"wav"}
 
       # ── Lean-out: everything model-ish is remote via OpenRouter ──
       - ENABLE_IMAGE_GENERATION=false # HIGH — already default, keep explicit
