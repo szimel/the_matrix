@@ -25,6 +25,8 @@ services:
       # cpu
       - ENABLE_COMPRESSION_MIDDLEWARE=false
       - ENABLE_ORJSON=true
+      # testing for higher timeouts
+      - AIOHTTP_CLIENT_TIMEOUT=300
     volumes:
       - /home/abed_23/apps/AI/open-webui/data:/app/backend/data
     ports:
