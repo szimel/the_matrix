@@ -76,7 +76,7 @@ services:
       - --enable-write
       - --enable-bearer
     environment:
-      ACTUAL_SERVER_URL: "http://actual-server:5006"
+      ACTUAL_SERVER_URL: "https://budget.bigdaddyz.com"
       ACTUAL_PASSWORD: ${ACTUAL_PASSWORD}
       # ACTUAL_BUDGET_ENCRYPTION_PASSWORD: "xyz"     # uncomment ONLY if your budget has a separate E2E encryption password
       # ACTUAL_BUDGET_SYNC_ID: "budget-id"           # uncomment only if you run multiple budgets
