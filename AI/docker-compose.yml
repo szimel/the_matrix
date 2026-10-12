@@ -64,6 +64,26 @@ services:
     volumes:
       - /home/abed_23/apps/AI/doormouse/config.toml:/app/config.toml:ro
 
+  actual-mcp:
+    image: sstefanov/actual-mcp:latest
+    container_name: actual-mcp
+    restart: unless-stopped
+    # --sse = HTTP mode (streamable-http + legacy SSE); default is stdio, which Open WebUI can't use
+    # --enable-write = REQUIRED for your Target-split flow (update-transaction writes)
+    # --enable-bearer = refuses connections without the token below
+    command:
+      - --sse
+      - --enable-write
+      - --enable-bearer
+    environment:
+      ACTUAL_SERVER_URL: "http://actual:5006"
+      ACTUAL_PASSWORD: ${ACTUAL_PASSWORD}
+      # ACTUAL_BUDGET_ENCRYPTION_PASSWORD: "xyz"     # uncomment ONLY if your budget has a separate E2E encryption password
+      # ACTUAL_BUDGET_SYNC_ID: "budget-id"           # uncomment only if you run multiple budgets
+      BEARER_TOKEN: ${BEARER_TOKEN}
+    networks:
+      - caddy_net
+
 networks:
   caddy_net:
     external: true
