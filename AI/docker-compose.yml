@@ -84,6 +84,23 @@ services:
     networks:
       - caddy_net
 
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    # Web search backend for Open WebUI (Admin Settings -> Web Search).
+    # ALL of its outbound traffic exits through Mullvad: this container joins
+    # gluetun's network namespace (the same trick transmission uses), so only
+    # SearXNG rides the VPN — nothing else in this stack does.
+    # Cross-stack note: gluetun lives in /media, so `service:gluetun` won't
+    # resolve here — `container:gluetun` is required, which means /media must
+    # be up first AND if gluetun is ever RECREATED (new container), recreate
+    # searxng too or it keeps a dead namespace.
+    network_mode: "container:gluetun"
+    restart: unless-stopped
+    volumes:
+      # settings.yml is untracked (holds secret_key) — lives on the host next to this stack's other app dirs
+      - /home/abed_23/apps/AI/searxng/settings.yml:/etc/searxng/settings.yml:ro
+
 networks:
   caddy_net:
     external: true
