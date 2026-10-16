@@ -27,13 +27,6 @@ services:
       - ENABLE_ORJSON=true
       # testing for higher timeouts
       - AIOHTTP_CLIENT_TIMEOUT=300
-
-      # web search reads pages via the separate playwright container below
-      # (never let OWUI install Chromium into itself — set PLAYWRIGHT_WS_URL)
-      - WEB_LOADER_ENGINE=playwright
-      # host is `gluetun`, not `playwright`: the container shares gluetun's
-      # namespace, so its name never exists on the wire from caddy_net
-      - PLAYWRIGHT_WS_URL=ws://gluetun:3000
     volumes:
       - /home/abed_23/apps/AI/open-webui/data:/app/backend/data
     ports:
@@ -98,7 +91,7 @@ services:
     # JS-rendering page loader for Open WebUI (WEB_LOADER_ENGINE=playwright).
     # Rides the Mullvad exit like searxng does, so page renders are anonymous too.
     # Idle ~100MB (server only); chromium spawns per page load and exits, mem_limit caps the peak.
-    network_mode: "container:gluetun"
+    networks: - caddy_net
     restart: unless-stopped
     mem_limit: 1g
 
