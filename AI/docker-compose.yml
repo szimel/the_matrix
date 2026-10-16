@@ -94,7 +94,7 @@ services:
   playwright:
     image: mcr.microsoft.com/playwright:v1.60.0-noble  # MUST match the playwright@x.y.z in command below AND OWUI's requirements.txt
     container_name: playwright
-    command: npx -y playwright@1.60.0 run-server --port 3000 --host [IP_ADDRESS]
+    command: npx -y playwright@1.60.0 run-server --port 3000 --host ${IP}
     # JS-rendering page loader for Open WebUI (WEB_LOADER_ENGINE=playwright).
     # Rides the Mullvad exit like searxng does, so page renders are anonymous too.
     # Idle ~100MB (server only); chromium spawns per page load and exits, mem_limit caps the peak.
