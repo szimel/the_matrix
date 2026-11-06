@@ -100,7 +100,7 @@ services:
     image: searxng/searxng:latest
     container_name: searxng
     ports:
-      - "8080:8080" # Map host port 8080 to SearXNG internal port 8080
+      - "8082:8080" # Map host port 8080 to SearXNG internal port 8080
     networks:
       - caddy_net
     restart: unless-stopped
