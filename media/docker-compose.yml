@@ -7,11 +7,14 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - VPN_SERVICE_PROVIDER=mullvad
-      - VPN_TYPE=wireguard
-      - WIREGUARD_PRIVATE_KEY=${MULLVAD_PRIVATE_KEY}
-      - WIREGUARD_ADDRESSES=${MULLVAD_ADDRESSES}
-      - SERVER_CITIES=${SERVER_CITY}
+      # PrivadoVPN via the Privado account bundled with the Eweka Usenet plan.
+      # Gluetun's built-in `privado` provider is OpenVPN-only (no WireGuard).
+      # Privado does not offer port forwarding, so 51413 below is outbound-only.
+      - VPN_SERVICE_PROVIDER=privado
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${PRIVADO_USER}
+      - OPENVPN_PASSWORD=${PRIVADO_PASSWORD}
+      - SERVER_COUNTRIES=${PRIVADO_COUNTRY}
       - TZ=${TZ}
     ports:
       - 9091:9091
