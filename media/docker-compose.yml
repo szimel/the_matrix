@@ -104,6 +104,44 @@ services:
     networks:
       - caddy_net
 
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /home/abed_23/apps/media/bazarr/config:/config
+      # read-write on purpose: Bazarr writes .srt sidecars next to the media files
+      - /mnt/media:/media
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+  unmanic:
+    image: josh5/unmanic:latest
+    container_name: unmanic
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /home/abed_23/apps/media/unmanic/config:/config
+      - /mnt/media:/media
+    ports:
+      - 8888:8888
+    # Intel Quick Sync passthrough, same pattern jellyfin uses
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "991"
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
