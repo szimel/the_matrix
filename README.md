@@ -16,7 +16,7 @@ Public repo: `https://github.com/szimel/the_matrix` (branch `main`).
 
 All folders reside on the host at `/home/abed_23/apps/`.
 
-* **`/media`** - The *Arr stack: Radarr, Sonarr, Prowlarr, Flaresolverr, Cleanuparr, Transmission + Gluetun (VPN). *Does not include Jellyfin — see `/streaming`.*
+* **`/media`** - The *Arr stack: Radarr, Sonarr, Prowlarr, Flaresolverr, Cleanuparr, SABnzbd (Usenet), Transmission + Gluetun (VPN). *Does not include Jellyfin — see `/streaming`.*
 * **`/streaming`** - Jellyfin and Seerr. Kept separate from `/media` so Arr-stack maintenance never takes the user-facing frontends down.
 * **`/music`** - Navidrome, Soulseek (`slskd`), and Soulsync.
 * **`/productivity`** - Vaultwarden, Actual Budget, Vikunja, Omni Tools, BentoPDF, FreshRSS, Mealie, the custom Python `notifications` bot, and the `productivity-feed` (YouTube replacement) service.
@@ -36,6 +36,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | --- | --- | --- | --- | --- |
 | media | gluetun | `qmcgaw/gluetun` | 9091, 51413/tcp+udp | PrivadoVPN OpenVPN (Eweka bundle); owns transmission's network |
 | media | transmission | `lscr.io/linuxserver/transmission` | — | `network_mode: service:gluetun`, no port mapping of its own |
+| media | sabnzbd | `lscr.io/linuxserver/sabnzbd` | 8083 | Usenet downloader; own network on `caddy_net` — no VPN (traffic is SSL to the provider); `/mnt/media` at `/media` so imports stay on one filesystem |
 | media | prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | |
 | media | radarr | `lscr.io/linuxserver/radarr` | 7878 | |
 | media | sonarr | `lscr.io/linuxserver/sonarr` | 8989 | |

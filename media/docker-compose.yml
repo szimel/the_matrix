@@ -15,6 +15,7 @@ services:
       - OPENVPN_USER=${PRIVADO_USER}
       - OPENVPN_PASSWORD=${PRIVADO_PASSWORD}
       - SERVER_COUNTRIES=${PRIVADO_COUNTRY}
+      - SERVER_CITIES=${SERVER_CITY}
       - TZ=${TZ}
     ports:
       - 9091:9091
@@ -36,6 +37,25 @@ services:
       - /mnt/media:/media
     network_mode: "service:gluetun"
     restart: unless-stopped
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    # Deliberately NOT behind gluetun: Usenet traffic is SSL-encrypted to the
+    # provider end-to-end, so the VPN adds nothing here but latency. Only
+    # transmission (torrents) needs the tunnel.
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /home/abed_23/apps/media/sabnzbd/config:/config
+      - /mnt/media:/media
+    ports:
+      - 8083:8080
+    restart: unless-stopped
+    networks:
+      - caddy_net
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
