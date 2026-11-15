@@ -41,37 +41,6 @@ services:
     restart: unless-stopped
     networks:
       - caddy_net
-
-  vikunja:
-    image: vikunja/vikunja:latest
-    container_name: vikunja
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - VIKUNJA_SERVICE_PUBLICURL=${VIKUNJA_URL}
-      - TZ=${TZ}
-      - VIKUNJA_OUTGOINGREQUESTS_ALLOWNONROUTABLEIPS=true
-    ports:
-      - 3456:3456
-    volumes:
-      - /home/abed_23/apps/productivity/vikunja/files:/app/vikunja/files
-      - /home/abed_23/apps/productivity/vikunja/db:/db
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
-  notifications:
-    build: ./notifications
-    container_name: notifications
-    environment:
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - VIKUNJA_URL=${VIKUNJA_URL}
-      - MEALIE_URL=${MEALIE_URL}
-    ports:
-      - 8001:8001
-    restart: unless-stopped
-    networks:
-      - caddy_net
       
   omni-tools:
     image: iib0011/omni-tools:latest
@@ -102,23 +71,6 @@ services:
       - /home/abed_23/apps/productivity/freshrss/config:/config
     ports:
       - 8087:80
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
-  mealie:
-    image: ghcr.io/mealie-recipes/mealie:latest
-    container_name: mealie
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - MEALIE_URL=${MEALIE_URL}
-      - HTTP_ALLOW_LIST=notifications
-    volumes:
-      - /home/abed_23/apps/productivity/mealie/data:/app/data/
-    ports:
-      - 9925:9000 # Maps Mealie's internal port 9000 to 9925 on your host
     restart: unless-stopped
     networks:
       - caddy_net
