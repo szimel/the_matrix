@@ -18,7 +18,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 
 * **`/media`** - The *Arr stack: Radarr, Sonarr, Prowlarr, Flaresolverr, Cleanuparr, SABnzbd (Usenet), Bazarr (subtitles), Unmanic (library re-encode), Transmission + Gluetun (VPN). *Does not include Jellyfin — see `/streaming`.*
 * **`/streaming`** - Jellyfin and Seerr. Kept separate from `/media` so Arr-stack maintenance never takes the user-facing frontends down.
-* **`/music`** - Navidrome, Soulseek (`slskd`), and Soulsync.
+* **`/music`** - Navidrome, Soulseek (`slskd`, riding `/media`'s gluetun tunnel), and Soulsync.
 * **`/productivity`** - Vaultwarden, Actual Budget, Vikunja, Omni Tools, BentoPDF, FreshRSS, Mealie, the custom Python `notifications` bot, and the `productivity-feed` (YouTube replacement) service.
 * **`/calendar`** - Radicale (CalDAV/CardDAV + VTODO) and `calendar-dav-mcp`, the MCP server that lets Open WebUI read/write the calendars. Kept out of `/productivity` because it holds live personal and family data plus its own password file.
 * **`/tdarr`** - Tdarr server + `tdarr-node` (iGPU-accelerated transcoding).
@@ -34,7 +34,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 
 | Stack | Service | Container / image | Host port | Notes |
 | --- | --- | --- | --- | --- |
-| media | gluetun | `qmcgaw/gluetun` | 9091, 51413/tcp+udp | PrivadoVPN OpenVPN (Eweka bundle); owns transmission's network |
+| media | gluetun | `qmcgaw/gluetun` | 9091, 5030, 51413/tcp+udp | PrivadoVPN OpenVPN (Eweka bundle); owns **both** transmission's and slskd's network, so it publishes slskd's 5030 and carries the `slskd` DNS alias |
 | media | transmission | `lscr.io/linuxserver/transmission` | — | `network_mode: service:gluetun`, no port mapping of its own |
 | media | sabnzbd | `lscr.io/linuxserver/sabnzbd` | 8083 | Usenet downloader; own network on `caddy_net` — no VPN (traffic is SSL to the provider); `/mnt/media` at `/media` so imports stay on one filesystem |
 | media | prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | |
@@ -47,7 +47,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | streaming | seerr | `ghcr.io/seerr-team/seerr` | 5055 | `init: true`, explicit DNS [IP_ADDRESS] / [IP_ADDRESS] |
 | streaming | jellyfin | `lscr.io/linuxserver/jellyfin` | 8096 | iGPU passthrough, `/mnt/media` mounted `:ro`, `DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel` |
 | music | navidrome | `deluan/navidrome` | 4533 | `/mnt/media/music` |
-| music | slskd | `slskd/slskd` | 5030, 50300 | |
+| music | slskd | `slskd/slskd` | — | `network_mode: container:gluetun` (cross-stack — `service:` only resolves inside one file), no port mapping and no network of its own; Caddy dials `slskd:5030` through the alias on `/media`'s gluetun. Firewalled on purpose — see gotcha 10 |
 | music | soulsync | `ghcr.io/nezreka/soulsync` | 8008 | |
 | tdarr | tdarr | `ghcr.io/haveagitgat/tdarr` | 8265, 8266 | server, no iGPU |
 | tdarr | tdarr-node | `ghcr.io/haveagitgat/tdarr_node` | — | iGPU passthrough, node name `thinkpad-node` |
@@ -74,7 +74,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | AI | searxng | `searxng/searxng` | 8082 → 8080 | own container on `caddy_net`, **no VPN**; `settings.yml` mounted `:ro` (untracked) |
 | AI | playwright | `mcr.microsoft.com/playwright:v1.60.0-noble` | — | no host port; own container on `caddy_net`, **no VPN**; serves `run-server` on 3000, OWUI dials `ws://playwright:3000`; `mem_limit: 1g` |
 
-Ports here are the **host-side** mappings. Reverse-proxy hostnames are defined in the host-only Caddyfile, not in this repo. For reference, that Caddyfile currently maps: `movies`→jellyfin, `radarr`, `sonarr`, `prowlarr`, `seerr`, `transmission`→gluetun:9091, `logs`→beszel:8090, `music`→navidrome, `slskd`, `soulsync`, `budget`→actual-server, `dockhand`, `passwords`→vaultwarden:80, `tasks`→vikunja, `cleanuparr`, `omni`→omni-tools:80, `pdf`→bentopdf:8080, `rss`→freshrss:80, `meals`→mealie:9000, `tdarr`→tdarr:8265, `youtube`→productivity-feed:9090. `open-webui` is deliberately **absent** from that list — it has no public hostname and is reached directly on port 8081.
+Ports here are the **host-side** mappings. Reverse-proxy hostnames are defined in the host-only Caddyfile, not in this repo. For reference, that Caddyfile currently maps: `movies`→jellyfin, `radarr`, `sonarr`, `prowlarr`, `seerr`, `transmission`→gluetun:9091, `logs`→beszel:8090, `music`→navidrome, `slskd`→gluetun:5030 (via a network alias, so the Caddyfile line itself never changed), `soulsync`, `budget`→actual-server, `dockhand`, `passwords`→vaultwarden:80, `tasks`→vikunja, `cleanuparr`, `omni`→omni-tools:80, `pdf`→bentopdf:8080, `rss`→freshrss:80, `meals`→mealie:9000, `tdarr`→tdarr:8265, `youtube`→productivity-feed:9090. `open-webui` is deliberately **absent** from that list — it has no public hostname and is reached directly on port 8081.
 
 Two more names exist that are **not** in this repo's control but are in active use, so don't be surprised by them: `budget.bigdaddyz.com` (used by `actual-mcp` to reach Actual Budget) and `tts.bigdaddyz.com` (text-to-speech, which wakes the GPU Matrix through `doormouse`). A `/calendar/caddy/calendar.caddyfile` is allowlisted in `.gitignore` but has **not** been committed yet — if you add it, it becomes tracked automatically.
 
@@ -200,6 +200,18 @@ Six helper services ride along, and each one has a reason to be odd:
 ### 9. Seerr's config path still says "jellyseerr"
 
 `streaming/docker-compose.yml` mounts `/home/abed_23/apps/streaming/jellyseerr/config` for the service now called `seerr`. That is not a typo to fix: the folder is where the config has lived since before the rename, and pointing it at a new path would present you with an empty, unconfigured Seerr. Same reasoning as the doubled `tdarr` path.
+
+### 10. slskd rides `/media`'s tunnel, and that tunnel will never forward a port
+
+`/music`'s `slskd` has no tunnel of its own: it sets `network_mode: "container:gluetun"` and joins the `gluetun` container defined in `/media`. That is the only form that works between two compose projects — `service:gluetun` only resolves inside a single file. One Privado connection serves torrents and Soulseek both. Everything below follows from that:
+
+* **A namespace has one set of ports and one DNS name.** So `gluetun` publishes `5030` and carries `networks.caddy_net.aliases: [slskd]`, and both of those lines live in `/media` even though they exist for `/music`. Expected, not a mistake — but it does mean the two stacks are no longer independent: media maintenance takes Soulseek down, and changing the VPN provider changes torrents and Soulseek together.
+* **The cross-stack dependency is invisible to Compose.** There is no `depends_on` between projects. On boot, if `gluetun` isn't up yet, slskd's start fails and Docker's restart policy retries it with backoff until it lands. The nastier case: if `gluetun` is ever *recreated*, slskd keeps running inside the old, dead namespace — no network, no error, no log line. Fix it with `docker compose up -d --force-recreate slskd` in the music stack.
+* **No port forwarding, ever, on Privado.** `50300` is deliberately published nowhere — nothing forwards it, and an inbound packet arriving on the tunnel would land inside the namespace directly with no Docker mapping at all. So slskd is *firewalled*: it can only reach peers that already have an open listening port, search results are thinner, and users who block leechers skip it outright. That is the accepted trade for not handing the home IP to every stranger it downloads from.
+* **Do not "fix" that with `SLSKD_VPN_PORT_FORWARDING=true`.** With port forwarding enabled, slskd waits for gluetun to hand it a port before connecting; Privado never hands one over, so slskd would wait forever and never reach the Soulseek server. Worse than firewalled.
+* **The Caddyfile line did not change.** `slskd` has no network interface of its own any more, so `/media`'s `gluetun` carries the `slskd` alias. Caddy's existing `reverse_proxy slskd:5030` still resolves — same trick as the `productivity-feed` alias in gotcha 5. If slskd returns 502, check that alias first.
+* **The killswitch is gluetun's, not slskd's.** slskd has an optional `SLSKD_VPN` integration that polls gluetun's control server and connects/disconnects from Soulseek based on tunnel state. It is deliberately **not** configured: gluetun's firewall already drops every packet that isn't on `tun0`, so there is nothing to leak, and the integration only adds a way to end up with slskd refusing to connect whenever the control server is unhappy.
+* **The web UI has no password.** `music/slskd/slskd.example.yml` ships `authentication.disabled: true`, and the host-only Caddyfile gives it a public hostname. That is a Soulseek client with full share and download control reachable from the internet. Set `disabled: false` plus credentials, and keep the `api_keys` entry so SoulSync can still call the API.
 
 ## 🚀 How to update a service
 

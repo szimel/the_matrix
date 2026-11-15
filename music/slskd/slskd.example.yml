@@ -1,6 +1,12 @@
 soulseek:
   username: ______
   password: ______
+  # Nothing upstream forwards this port: Privado has no port forwarding, so the
+  # client stays "firewalled" — it can reach peers that have an open port, and
+  # peers that only accept open-port clients skip it. It is deliberately not
+  # published anywhere in Docker either: slskd lives inside /media's gluetun
+  # namespace, so inbound tunnel traffic would land on this socket directly.
+  # Only change this value alongside FIREWALL_VPN_INPUT_PORTS on gluetun.
   listen_port: 50300
 
 directories:
@@ -9,12 +15,33 @@ directories:
 shares:
   directories:
     - /uploads
+  # Keeps junk out of what strangers can browse and download. Case-insensitive
+  # regex, one per line. Add more as the library turns up offenders.
+  filters:
+    - \.log$
+    - \.nfo$
+    - \.sfv$
+    - \.m3u$
+    - Thumbs\.db$
+
+transfers:
+  upload:
+    # Caps how much of the line other people can eat. A firewalled client
+    # rarely receives upload requests anyway, so this is cheap insurance.
+    slots: 3
 
 web:
   port: 5030
   authentication:
+    # ⚠️ disabled: true means anyone who reaches this port owns the client.
+    # The host-only Caddyfile publishes a `slskd` hostname, so this UI is
+    # reachable from the internet with no login. To lock it down: set
+    # disabled: false and add username/password below (or use the
+    # SLSKD_USERNAME / SLSKD_PASSWORD env vars in Dockhand instead), and keep
+    # the api_keys entry so SoulSync can still call the API.
     disabled: true
+    # username: ______
+    # password: ______
     api_keys:
       xplo_key:
         key: "______"
-

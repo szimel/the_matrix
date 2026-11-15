@@ -28,12 +28,32 @@ services:
       - /home/abed_23/apps/music/slskd:/app
       - /mnt/media/downloads/soulseek:/downloads
       - /mnt/media/music:/uploads
-    ports:
-      - 5030:5030
-      - 50300:50300
+    # Rides /media's existing gluetun instead of carrying its own tunnel.
+    # `container:gluetun` is the only form that works across compose projects —
+    # `service:gluetun` only resolves inside a single file.
+    #
+    # Accepted consequences (all of them live in media/docker-compose.yml):
+    #   - gluetun publishes 5030 and carries the `slskd` network alias, because
+    #     a namespace has one set of ports and one DNS name
+    #   - no depends_on across projects: if gluetun isn't up at boot, this
+    #     container fails to start and Docker retries with backoff
+    #   - if gluetun is ever recreated, this one is stranded on a dead
+    #     namespace — fix with `docker compose up -d --force-recreate slskd`
+    #
+    # No `ports:` and no `networks:` here: both belong to the container that
+    # owns the namespace, and Compose refuses to combine network_mode with
+    # networks anyway.
+    #
+    # Privado offers no port forwarding, so the Soulseek listen port is not
+    # published anywhere and the client stays "firewalled" on the network:
+    # it can reach peers that have an open port, and peers that only accept
+    # open-port clients skip it. Accepted trade — slower downloads in exchange
+    # for not handing the home IP to every stranger it downloads from.
+    # If a forwarding provider ever replaces Privado: add
+    # FIREWALL_VPN_INPUT_PORTS=<port> to gluetun and set soulseek.listen_port
+    # in slskd.yml to the same number.
+    network_mode: "container:gluetun"
     restart: unless-stopped
-    networks:
-      - caddy_net
 
   soulsync:
     image: ghcr.io/nezreka/soulsync:latest

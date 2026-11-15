@@ -10,6 +10,8 @@ services:
       # PrivadoVPN via the Privado account bundled with the Eweka Usenet plan.
       # Gluetun's built-in `privado` provider is OpenVPN-only (no WireGuard).
       # Privado does not offer port forwarding, so 51413 below is outbound-only.
+      # This namespace is also shared by /music's slskd — see the `slskd`
+      # network alias and the 5030 publish below.
       - VPN_SERVICE_PROVIDER=privado
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${PRIVADO_USER}
@@ -21,9 +23,20 @@ services:
       - 9091:9091
       - 51413:51413
       - 51413:51413/udp
+      # slskd's web UI. slskd lives in /music but rides this namespace, so its
+      # port has to be published here. The Soulseek listen port is deliberately
+      # NOT published: nothing forwards it, and inbound tunnel traffic would
+      # land inside the namespace directly with no Docker mapping at all.
+      - 5030:5030
     restart: unless-stopped
     networks:
-      - caddy_net
+      caddy_net:
+        # /music's slskd has no network interface of its own, so it has no DNS
+        # name on caddy_net. This alias is what keeps the Caddyfile's existing
+        # `reverse_proxy slskd:5030` resolving — same trick as
+        # `productivity-feed` in /productivity.
+        aliases:
+          - slskd
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
@@ -131,6 +144,8 @@ services:
     volumes:
       - /home/abed_23/apps/media/unmanic/config:/config
       - /mnt/media:/media
+      # transcode scratch space — must NOT be added as a Unmanic library folder
+      - /mnt/media/unmanic_cache:/tmp/unmanic
     ports:
       - 8888:8888
     # Intel Quick Sync passthrough, same pattern jellyfin uses
