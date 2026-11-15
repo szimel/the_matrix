@@ -68,6 +68,7 @@ services:
       - /home/abed_23/apps/music/soulsync/data:/app/data
       - /mnt/media/downloads/soulseek:/app/downloads
       - /mnt/media/downloads/sabnzbd/complete/soulsync:/app/sabnzbd
+      - /mnt/media/downloads/complete/soulsync:/app/transmission
       - /mnt/media/music:/music
       - /mnt/media/songs:/app/Staging
     ports:
