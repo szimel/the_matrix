@@ -64,6 +64,7 @@ services:
     command: /opt/sharry.conf
     environment:
       - SHARRY_BASE_URL=${SHARRY_BASE_URL}
+      - SHARRY_BIND_ADDRESS=0.0.0.0
     ports:
       - 8090:9090
     volumes:
