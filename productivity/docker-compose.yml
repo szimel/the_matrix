@@ -63,8 +63,6 @@ services:
     container_name: sharry
     ports:
       - 8090:9090
-    environment:
-      - SHARRY_BASE_URL=https://share.bigdaddyz.com
     volumes:
       - /home/abed_23/apps/productivity/sharry/data:/data
     networks:
