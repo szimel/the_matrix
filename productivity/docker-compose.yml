@@ -65,6 +65,7 @@ services:
     environment:
       - SHARRY_BASE_URL=${SHARRY_BASE_URL}
       - SHARRY_BIND_ADDRESS=0.0.0.0
+      - SHARRY_BACKEND_SIGNUP_MODE=closed
     ports:
       - 8090:9090
     volumes:
