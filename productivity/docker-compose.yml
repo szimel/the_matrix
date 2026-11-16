@@ -75,6 +75,19 @@ services:
     networks:
       - caddy_net
 
+  sharry:
+    image: eikek0/sharry:latest
+    container_name: sharry
+    ports:
+      - "8090:9090"
+    environment:
+      - SHARRY_BASE_URL=https://share.bigdaddyz.com
+    volumes:
+      - /home/abed_23/apps/productivity/sharry/data:/data
+    networks:
+      - caddy_net
+    restart: unless-stopped
+
 networks:
   caddy_net:
     external: true
