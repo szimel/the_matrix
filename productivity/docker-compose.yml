@@ -57,16 +57,19 @@ services:
     restart: unless-stopped
     networks:
       - caddy_net
-
+      
   sharry:
     image: eikek0/sharry:latest
     container_name: sharry
+    command: /opt/sharry.conf
     environment:
       - SHARRY_BASE_URL=${SHARRY_BASE_URL}
     ports:
       - 8090:9090
     volumes:
+      - /home/abed_23/apps/productivity/sharry/sharry.conf:/opt/sharry.conf:ro
       - /home/abed_23/apps/productivity/sharry/data:/data
+      - /mnt/media/inbox:/inbox
     networks:
       - caddy_net
     restart: unless-stopped
