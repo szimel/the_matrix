@@ -40,7 +40,7 @@ Four mounts, all defined in `/etc/fstab` and referenced by **UUID** (never `/dev
 | `/mnt/ssd1tb` | 1 TB SSD. A **mergerfs branch** — never target it directly | folded into `/mnt/library` |
 | `/mnt/hdd1tb` | 1 TB HDD, freshly formatted. Also a **branch** | folded into `/mnt/library` |
 | `/mnt/library` | mergerfs pool of those two 1 TB drives: music, Soulseek, staging | `/mnt/library/...` |
-| `/mnt/actual-data` | Actual Budget's database, on no drive of its own | `/data` |
+| `/mnt/library/actual-data` | Actual Budget's database — ⚠️ the one database sitting on the pool | `/data` |
 
 On-disk shape:
 
@@ -56,7 +56,8 @@ On-disk shape:
 /mnt/library/           <- two 1 TB drives wearing one trench coat
 ├── music/
 ├── songs/              <- Soulsync staging
-└── downloads/soulseek/
+├── downloads/soulseek/
+└── actual-data/        <- Actual Budget SQLite. See gotcha 11.
 ```
 
 **Why every media container mounts the whole drive at `/data`** rather than the individual folders: Radarr and Sonarr have to see the download folder *and* the library through the same mount. Two separate binds of the same disk look like two filesystems to Docker, and every import silently becomes a full copy instead of a hardlink — slow, and it doubles the disk usage for no reason.
@@ -77,12 +78,12 @@ Branches mount **before** the pool via `x-systemd.requires-mounts-for=`, and eve
 | media | flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | 8191 | |
 | media | cleanuparr | `ghcr.io/cleanuparr/cleanuparr` | 11011 | |
 | streaming | seerr | `ghcr.io/seerr-team/seerr` | 5055 | `init: true`, explicit DNS [IP_ADDRESS] / [IP_ADDRESS] |
-| streaming | jellyfin | `lscr.io/linuxserver/jellyfin` | 8096 | iGPU passthrough, `/mnt/streaming` mounted `/data:ro`, `DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel`; libraries are `/data/media/movies` + `/data/media/tv` |
+| streaming | jellyfin | `lscr.io/linuxserver/jellyfin` | 8096 | **NVENC** via `runtime: nvidia` + GPU device reservation (RTX 2070 Super); `/mnt/streaming` mounted `/data:ro`; libraries are `/data/media/movies` + `/data/media/tv` |
 | music | navidrome | `deluan/navidrome` | 4533 | `/mnt/library/music` — the mergerfs pool, not a single disk |
 | music | slskd | `slskd/slskd` | — | `network_mode: container:gluetun` (cross-stack — `service:` only resolves inside one file), no port mapping and no network of its own; Caddy dials `slskd:5030` through the alias on the `/media` stack's gluetun. Firewalled on purpose — see gotcha 10 |
 | music | soulsync | `ghcr.io/nezreka/soulsync` | 8008 | reads Soulseek downloads from `/mnt/library/downloads/soulseek` (instant move) but the `*arr` completions from `/mnt/streaming/...` (cross-device copy — expected) |
 | tdarr | tdarr | `ghcr.io/haveagitgat/tdarr` | 8265, 8266 | server, no iGPU |
-| tdarr | tdarr-node | `ghcr.io/haveagitgat/tdarr_node` | — | iGPU passthrough, node name `thinkpad-node` |
+| tdarr | tdarr-node | `ghcr.io/haveagitgat/tdarr_node` | — | **NVENC** via `runtime: nvidia` + GPU reservation; node name `thinkpad-node`; flows still reference QSV plugins — see gotcha 12 |
 | productivity | actual-server | `actualbudget/actual-server` | 5006 | |
 | productivity | productivity-feed | `ghcr.io/szimel/youtube-lobotomy:main` | 9090 → 8080 | container name is `youtube-replacer`; app listens on 8080 (see gotcha 5) |
 | productivity | vaultwarden | `vaultwarden/server` | 8080 → 80 | |
@@ -113,11 +114,39 @@ Two more names exist that are **not** in this repo's control but are in active u
 
 ### Hardware acceleration
 
-Intel iGPU is passed into `jellyfin` and `tdarr-node` as `/dev/dri/renderD128`, with the container added to render group `991`. Jellyfin additionally loads `linuxserver/mods:jellyfin-opencl-intel` via `DOCKER_MODS`. If a rebuilt container loses transcoding, check those lines first.
+**One GPU: an RTX 2070 Super (Turing). There is no Intel iGPU on this host.** Everything hardware-accelerated goes through NVENC/NVDEC.
 
-⚠️ **Both `/dev/dri/renderD128` and GID `991` are properties of the host, not of this repo.** They do not survive a hardware swap. After any machine change, verify `ls -l /dev/dri` and `stat -c '%g' /dev/dri/renderD128` before starting these containers — a wrong GID gives a container that runs perfectly and simply cannot see the GPU.
+The previous machine used Intel QuickSync, so `jellyfin` and `tdarr-node` used to carry a `/dev/dri/renderD128` device plus `group_add: "991"` (the host's render group), and Jellyfin loaded `linuxserver/mods:jellyfin-opencl-intel` via `DOCKER_MODS`. **All of that is now gone** — on a machine with no `/dev/dri`, those lines are a container that starts up cheerfully and then cannot transcode at all.
 
-The current box also carries an **RTX 2070 Super**, which nothing in this repo uses yet. Jellyfin and Tdarr are still on Intel QuickSync. Moving them to NVENC is a deliberate, separate project — the NVIDIA Container Toolkit has to be installed first, and the `/dev/dri` + `group_add` blocks replace themselves with `deploy.resources.reservations.devices` (`driver: nvidia`). Don't do it in the same sitting as a migration.
+Both containers now use the NVIDIA runtime instead:
+
+```yaml
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+```
+
+Host prerequisites, in this order — neither of these lives in the repo:
+
+1. **NVIDIA driver.** `nvidia-smi` must print a table before anything else is worth trying.
+2. **NVIDIA Container Toolkit.** `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`. Afterwards `docker info | grep -i runtime` must list `nvidia`. If it doesn't, `runtime: nvidia` fails with `unknown or invalid runtime name: nvidia`.
+
+**Turing's limits, so nobody chases a phantom bug:** H.264 8-bit and HEVC 8/10-bit encode are fine. **AV1 is not — not encoding (Ada Lovelace and newer) and not decoding (Ampere and newer).** Uncheck AV1 in Jellyfin's transcoding settings and don't put it in a Tdarr flow.
+
+Verification, in order of usefulness:
+
+```
+docker exec -it jellyfin nvidia-smi
+docker exec -it jellyfin /usr/lib/jellyfin-ffmpeg/ffmpeg -hwaccels
+nvidia-smi                       # on the host, during an actual transcode
+```
+
+If Jellyfin logs `CUDA_ERROR_NO_DEVICE`, the device reservation isn't reaching the container — see the troubleshooting note in gotcha 12.
 
 ## 🔐 Public ingress (Pangolin)
 
@@ -169,7 +198,7 @@ When editing `docker-compose.yml` files, pay close attention to paths:
 **There is no `${ROOT_DIR}` any more.** It was one variable carrying a different meaning per stack — each compose file lives in its own directory, so `${ROOT_DIR}/X` meant `/home/abed_23/apps/<stack>/X`, except in `tdarr` where it meant `/home/abed_23/apps/tdarr/tdarr/X`. Paths are now spelled out in full, so there is nothing to misread. *Stale comments in `/calendar` still say "via `${ROOT_DIR}`" — the actual volume lines are absolute. Ignore the comments, trust the paths.*
 
 Two known deviations from `/home/abed_23/apps/<stack>/<app>/...`:
-* `actual-server` mounts `/mnt/actual-data:/data` — a separate mount, not under `/home/abed_23/apps`.
+* `actual-server` mounts `/mnt/library/actual-data:/data` — a separate mount, not under `/home/abed_23/apps`, and the only **database** that lives anywhere other than the OS SSD. See gotcha 11 for why that deserves a raised eyebrow.
 * `tdarr` repeats its own name: `/home/abed_23/apps/tdarr/tdarr/configs`. That is where its configs have always lived; the absolute paths preserve it rather than relocating live config directories.
 
 ### 3. Environment Variables (`.env`)
@@ -259,8 +288,43 @@ Six helper services ride along, and each one has a reason to be odd:
 * **Order matters in `/etc/fstab`.** Branches first, pool last, and the pool line carries `x-systemd.requires-mounts-for=/mnt/ssd1tb` and `...=/mnt/hdd1tb` so systemd won't mount the pool over empty mount points.
 * **`category.create=epmfs` keeps an artist's folder on one drive.** New content goes to the drive that already holds that path, so albums and photo years don't get split down the middle.
 * **`moveonenospc=true`** means a file that outgrows its drive gets relocated instead of failing the write.
-* **Do not put appdata on the pool.** SQLite and Postgres on a union filesystem is a corruption speedrun. Navidrome's database stays on the OS SSD under `/apps`.
+* **Do not put appdata on the pool.** SQLite and Postgres on a union filesystem is a corruption speedrun, because SQLite relies on atomic renames and on its journal file living beside the database. Navidrome's database stays on the OS SSD under `/apps`.
+* **`actual-data` is the standing exception, and it is not a happy one.** The budget database sits at `/mnt/library/actual-data`, so SQLite is running on the pool. Two things make it computer-sigh: `moveonenospc=true` can relocate a file that's open and being written, and with `category.create=epmfs` a freshly created top-level directory lands on whichever branch has the most free space — currently the **HDD**, not the SSD. The budget file is a few megabytes; `/home/abed_23/apps/productivity/actual-data` would be the boring, safe, consistent location.
 * **Everything carries `nofail`.** If a branch fails to mount, the pool comes up anyway on one drive and half the library is silently absent — which is exactly the situation where an app "helpfully" decides your files are missing.
+
+### 12. QSV → NVENC is two jobs, and compose is only the first
+
+Getting the GPU into the container is the easy half. Both apps still believe they're on Intel QuickSync, and neither of those beliefs lives in this repo.
+
+**Jellyfin** (Dashboard → Playback → Transcoding):
+
+* Hardware acceleration: switch from QSV/VA-API to **NVIDIA NVENC**.
+* Uncheck **AV1** entirely — no encoding on Turing, no decoding either. Leave H.264 and HEVC checked.
+* Enable **CUDA** tone-mapping if you want HDR→SDR handled on the GPU. It works on any NVIDIA card with HEVC 10-bit decoding, which a 2070 Super has.
+* Tick **Enable enhanced NVDEC decoder** — required for Dolby Vision.
+
+**Tdarr** is the bigger job. The compose change only gives the node a GPU. The node's transcode settings and its whole plugin flow are still written for QSV — the Boosh QSV plugin does not work on NVIDIA, full stop.
+
+* Node → Options → Transcode GPU: pick the NVIDIA device, or leave it on "Auto".
+* Rewrite the flow's video encode step for `hevc_nvenc` (or `h264_nvenc`) instead of a QSV encoder. If the flow uses the Boosh QSV plugin, that step has to be replaced, not tweaked.
+* Keep the temp folder on the same drive as media — `/mnt/streaming/tdarr:/temp` — or every transcode becomes a slow cross-device copy.
+* The node is still named `thinkpad-node` from the old laptop host. Leave it if you want Tdarr to keep its existing per-node settings; rename it and the node arrives as a stranger with default settings.
+
+**If Jellyfin logs `CUDA_ERROR_NO_DEVICE`**, the GPU handle isn't reaching the container. The documented workaround is to pass the device nodes explicitly alongside the reservation:
+
+```yaml
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-modeset:/dev/nvidia-modeset
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+      - /dev/nvidia-caps:/dev/nvidia-caps
+```
+
+Try without it first. It's a workaround for a specific upstream bug, not a default.
+
+One more: GeForce cards are capped on **concurrent** NVENC sessions. It's no longer the 2-session straw man of years past — driver 550–58x allows up to 8, and 590+ up to 12 — but a house full of simultaneous 4K transcodes can still hit the wall. If a stream randomly falls back to software encoding under load, that's the reason.
 
 ## 🚀 How to update a service
 

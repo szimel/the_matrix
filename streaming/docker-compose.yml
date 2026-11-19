@@ -26,16 +26,24 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel 
-    # MIGRATION: Intel iGPU passthrough. /dev/dri and GID 991 are properties of
-    # the OLD host. On the new box check `ls -l /dev/dri` and
-    # `stat -c '%g' /dev/dri/renderD128` before starting this container. If the
-    # new CPU has no iGPU -- or once you switch to the 2070 Super -- this block
-    # and DOCKER_MODS above both need revisiting.
-    devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128
-    group_add:
-      - "991"
+      # One GPU, and it's the RTX 2070 Super. There is no Intel iGPU on this host,
+      # so /dev/dri does not exist, GID 991 is meaningless, and the
+      # jellyfin-opencl-intel DOCKER_MOD was removed -- an Intel-only mod on an
+      # NVIDIA box is a container that starts and then fails to transcode.
+      #
+      # NVENC/NVDEC only. Host prerequisites: NVIDIA driver (nvidia-smi must work)
+      # and the NVIDIA Container Toolkit (`nvidia-ctk runtime configure
+      # --runtime=docker`) so `docker info` lists an `nvidia` runtime.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
       - /home/abed_23/apps/streaming/jellyfin/config:/config
       # Whole streaming drive at /data (read-only: Jellyfin never writes here).
