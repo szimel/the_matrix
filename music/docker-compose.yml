@@ -1,3 +1,24 @@
+# Hardware migration (branch: hardware-migration)
+#
+# Music and photos now live on a mergerfs pool at /mnt/library: the 1 TB SSD
+# (/mnt/ssd1tb) and the 1 TB HDD (/mnt/hdd1tb) presented as a single tree.
+# NEVER point a volume at /mnt/ssd1tb or /mnt/hdd1tb directly -- always the pool.
+# Writing to a branch behind mergerfs's back is how you end up with two rival
+# copies of the same album and no way to tell which one the scanner saw.
+#
+#   HOST                                     CONTAINER
+#   /mnt/library/music                       /music        (navidrome, soulsync)
+#   /mnt/library/music                       /uploads      (slskd shares this)
+#   /mnt/library/songs                       /app/Staging  (soulsync)
+#   /mnt/library/downloads/soulseek          /downloads    (slskd)
+#   /mnt/streaming/transmission/complete/soulsync   /app/transmission
+#   /mnt/streaming/sabnzbd/complete/soulsync        /app/sabnzbd
+#
+# The last two are worth noticing: completed music downloads still land on the
+# STREAMING drive, so Soulsunc pulling those into /mnt/library is a real
+# cross-device copy. Soulseek's own downloads live on the pool, so those moves
+# stay instant.
+
 services:
   navidrome:
     image: deluan/navidrome:latest
@@ -10,7 +31,7 @@ services:
       - ND_AUTOUPDATE=true
     volumes:
       - /home/abed_23/apps/music/navidrome/config:/data
-      - /mnt/media/music:/music
+      - /mnt/library/music:/music
     ports:
       - 4533:4533
     restart: unless-stopped
@@ -26,8 +47,8 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/music/slskd:/app
-      - /mnt/media/downloads/soulseek:/downloads
-      - /mnt/media/music:/uploads
+      - /mnt/library/downloads/soulseek:/downloads
+      - /mnt/library/music:/uploads
     # Rides /media's existing gluetun instead of carrying its own tunnel.
     # `container:gluetun` is the only form that works across compose projects —
     # `service:gluetun` only resolves inside a single file.
@@ -66,11 +87,11 @@ services:
       - /home/abed_23/apps/music/soulsync/config:/app/config
       - /home/abed_23/apps/music/soulsync/logs:/app/logs
       - /home/abed_23/apps/music/soulsync/data:/app/data
-      - /mnt/media/downloads/soulseek:/app/downloads
-      - /mnt/media/downloads/sabnzbd/complete/soulsync:/app/sabnzbd
-      - /mnt/media/downloads/complete/soulsync:/app/transmission
-      - /mnt/media/music:/music
-      - /mnt/media/songs:/app/Staging
+      - /mnt/library/downloads/soulseek:/app/downloads
+      - /mnt/streaming/sabnzbd/complete/soulsync:/app/sabnzbd
+      - /mnt/streaming/transmission/complete/soulsync:/app/transmission
+      - /mnt/library/music:/music
+      - /mnt/library/songs:/app/Staging
     ports:
       - 8008:8008
     restart: unless-stopped

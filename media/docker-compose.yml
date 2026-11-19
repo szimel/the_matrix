@@ -1,3 +1,23 @@
+# Hardware migration (branch: hardware-migration)
+# Media now lives on the 2 TB drive mounted at /mnt/streaming on the host.
+#
+# Every container that touches it mounts the WHOLE drive at /data, so that the
+# download folders and the library sit on one filesystem. That is what lets
+# Radarr/Sonarr hardlink an import instead of copying it across devices.
+#
+#   HOST                             CONTAINER
+#   /mnt/streaming                   /data
+#   /mnt/streaming/media/movies      /data/media/movies
+#   /mnt/streaming/media/tv          /data/media/tv
+#   /mnt/streaming/transmission/     /data/transmission/{complete,incomplete}
+#   /mnt/streaming/sabnzbd/          /data/sabnzbd/{complete,incomplete}
+#
+# App-side paths that must be updated in each UI after first boot:
+#   Transmission  download/incomplete dirs -> /data/transmission/{complete,incomplete}
+#   SABnzbd       folders                  -> /data/sabnzbd/{complete,incomplete}
+#   Radarr        root folder              -> /data/media/movies
+#   Sonarr        root folder              -> /data/media/tv
+
 services:
   gluetun:
     image: qmcgaw/gluetun:latest
@@ -47,7 +67,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/transmission/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     network_mode: "service:gluetun"
     restart: unless-stopped
 
@@ -63,7 +83,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/sabnzbd/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 8083:8080
     restart: unless-stopped
@@ -94,7 +114,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/radarr/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -110,7 +130,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/sonarr/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -127,7 +147,7 @@ services:
     volumes:
       - /home/abed_23/apps/media/bazarr/config:/config
       # read-write on purpose: Bazarr writes .srt sidecars next to the media files
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 6767:6767
     restart: unless-stopped

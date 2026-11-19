@@ -13,8 +13,11 @@ services:
       - /home/abed_23/apps/tdarr/tdarr/server:/app/server
       - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
       - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
-      - /mnt/media:/media
-      - /mnt/media/tdarr_temp:/temp    # <--- CRITICAL: Temp must be on the same drive as media
+      - /mnt/streaming:/data
+      # CRITICAL: temp must be on the same drive as media. /mnt/streaming/tdarr
+      # is a sibling of /mnt/streaming/media on the same filesystem, so a
+      # finished transcode is a rename, not a multi-GB copy.
+      - /mnt/streaming/tdarr:/temp
     ports:
       - 8265:8265
       - 8266:8266
@@ -32,6 +35,10 @@ services:
       - serverIP=tdarr
       - serverPort=8266
       - nodeName=thinkpad-node
+    # MIGRATION: Intel iGPU passthrough -- /dev/dri and GID 991 belong to the OLD
+    # host. Verify both exist on the new box before starting, or switch this node
+    # to NVENC on the 2070 Super. Also note `nodeName=thinkpad-node` above: that
+    # is the name Tdarr has on record for this node's workers.
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128  # <--- iGPU Passthrough
     group_add:
@@ -39,8 +46,8 @@ services:
     volumes:
       - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
       - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
-      - /mnt/media:/media
-      - /mnt/media/tdarr_temp:/temp
+      - /mnt/streaming:/data
+      - /mnt/streaming/tdarr:/temp
     restart: unless-stopped
     networks:
       - caddy_net

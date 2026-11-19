@@ -16,9 +16,9 @@ Public repo: `https://github.com/szimel/the_matrix` (branch `main`).
 
 All folders reside on the host at `/home/abed_23/apps/`.
 
-* **`/media`** - The *Arr stack: Radarr, Sonarr, Prowlarr, Flaresolverr, Cleanuparr, SABnzbd (Usenet), Bazarr (subtitles), Unmanic (library re-encode), Transmission + Gluetun (VPN). *Does not include Jellyfin — see `/streaming`.*
+* **`/media`** - The *Arr stack: Radarr, Sonarr, Prowlarr, Flaresolverr, Cleanuparr, SABnzbd (Usenet), Bazarr (subtitles), Transmission + Gluetun (VPN). *Does not include Jellyfin — see `/streaming`.* (Unmanic used to live here; it has been retired in favour of `/tdarr`.)
 * **`/streaming`** - Jellyfin and Seerr. Kept separate from `/media` so Arr-stack maintenance never takes the user-facing frontends down.
-* **`/music`** - Navidrome, Soulseek (`slskd`, riding `/media`'s gluetun tunnel), and Soulsync.
+* **`/music`** - Navidrome, Soulseek (`slskd`, riding `/media`'s gluetun tunnel), and Soulsync. The library itself lives on a **mergerfs pool** at `/mnt/library` spanning two 1 TB drives — see 📦 Storage layout.
 * **`/productivity`** - Vaultwarden, Actual Budget, Vikunja, Omni Tools, BentoPDF, FreshRSS, Mealie, the custom Python `notifications` bot, and the `productivity-feed` (YouTube replacement) service.
 * **`/calendar`** - Radicale (CalDAV/CardDAV + VTODO) and `calendar-dav-mcp`, the MCP server that lets Open WebUI read/write the calendars. Kept out of `/productivity` because it holds live personal and family data plus its own password file.
 * **`/tdarr`** - Tdarr server + `tdarr-node` (iGPU-accelerated transcoding).
@@ -30,25 +30,57 @@ All folders reside on the host at `/home/abed_23/apps/`.
 
 *Note: All stacks share a common external Docker network called `caddy_net` so the reverse proxy can route traffic seamlessly.*
 
+## 💾 Storage layout
+
+Four mounts, all defined in `/etc/fstab` and referenced by **UUID** (never `/dev/sdX`, which shuffles between boots):
+
+| Host path | What it actually is | How containers see it |
+| --- | --- | --- |
+| `/mnt/streaming` | 2 TB NVMe. Movies, TV, both download clients, Tdarr scratch | `/data` (Jellyfin gets `/data:ro`) |
+| `/mnt/ssd1tb` | 1 TB SSD. A **mergerfs branch** — never target it directly | folded into `/mnt/library` |
+| `/mnt/hdd1tb` | 1 TB HDD, freshly formatted. Also a **branch** | folded into `/mnt/library` |
+| `/mnt/library` | mergerfs pool of those two 1 TB drives: music, Soulseek, staging | `/mnt/library/...` |
+| `/mnt/actual-data` | Actual Budget's database, on no drive of its own | `/data` |
+
+On-disk shape:
+
+```
+/mnt/streaming/
+├── media/movies
+├── media/tv
+├── transmission/{complete,incomplete}
+├── sabnzbd/{complete,incomplete}
+├── tdarr/              <- Tdarr scratch; sibling of media ON PURPOSE
+└── inbox/              <- Sharry
+
+/mnt/library/           <- two 1 TB drives wearing one trench coat
+├── music/
+├── songs/              <- Soulsync staging
+└── downloads/soulseek/
+```
+
+**Why every media container mounts the whole drive at `/data`** rather than the individual folders: Radarr and Sonarr have to see the download folder *and* the library through the same mount. Two separate binds of the same disk look like two filesystems to Docker, and every import silently becomes a full copy instead of a hardlink — slow, and it doubles the disk usage for no reason.
+
+Branches mount **before** the pool via `x-systemd.requires-mounts-for=`, and every one of these lines carries `nofail`. The consequence is worth knowing: if a branch doesn't mount, the pool still comes up on one drive and half your music simply isn't there.
+
 ## 📦 Services and Ports
 
 | Stack | Service | Container / image | Host port | Notes |
 | --- | --- | --- | --- | --- |
 | media | gluetun | `qmcgaw/gluetun` | 9091, 5030, 51413/tcp+udp | PrivadoVPN OpenVPN (Eweka bundle); owns **both** transmission's and slskd's network, so it publishes slskd's 5030 and carries the `slskd` DNS alias |
 | media | transmission | `lscr.io/linuxserver/transmission` | — | `network_mode: service:gluetun`, no port mapping of its own |
-| media | sabnzbd | `lscr.io/linuxserver/sabnzbd` | 8083 | Usenet downloader; own network on `caddy_net` — no VPN (traffic is SSL to the provider); `/mnt/media` at `/media` so imports stay on one filesystem |
+| media | sabnzbd | `lscr.io/linuxserver/sabnzbd` | 8083 | Usenet downloader; own network on `caddy_net` — no VPN (traffic is SSL to the provider); `/mnt/streaming` at `/data` so imports stay as hardlinks |
 | media | prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | |
 | media | radarr | `lscr.io/linuxserver/radarr` | 7878 | |
 | media | sonarr | `lscr.io/linuxserver/sonarr` | 8989 | |
-| media | bazarr | `lscr.io/linuxserver/bazarr` | 6767 | subtitle manager for Sonarr + Radarr; `/mnt/media` mounted **read-write** (writes `.srt` sidecars); no path mappings needed, paths match |
-| media | unmanic | `josh5/unmanic` | 8888 | library optimiser (Tdarr replacement); iGPU passthrough `/dev/dri` + `group_add: 991` like jellyfin; `/mnt/media` at `/media` |
+| media | bazarr | `lscr.io/linuxserver/bazarr` | 6767 | subtitle manager for Sonarr + Radarr; `/mnt/streaming` mounted **read-write** at `/data` (writes `.srt` sidecars); no path mappings needed, paths match |
 | media | flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | 8191 | |
 | media | cleanuparr | `ghcr.io/cleanuparr/cleanuparr` | 11011 | |
 | streaming | seerr | `ghcr.io/seerr-team/seerr` | 5055 | `init: true`, explicit DNS [IP_ADDRESS] / [IP_ADDRESS] |
-| streaming | jellyfin | `lscr.io/linuxserver/jellyfin` | 8096 | iGPU passthrough, `/mnt/media` mounted `:ro`, `DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel` |
-| music | navidrome | `deluan/navidrome` | 4533 | `/mnt/media/music` |
-| music | slskd | `slskd/slskd` | — | `network_mode: container:gluetun` (cross-stack — `service:` only resolves inside one file), no port mapping and no network of its own; Caddy dials `slskd:5030` through the alias on `/media`'s gluetun. Firewalled on purpose — see gotcha 10 |
-| music | soulsync | `ghcr.io/nezreka/soulsync` | 8008 | |
+| streaming | jellyfin | `lscr.io/linuxserver/jellyfin` | 8096 | iGPU passthrough, `/mnt/streaming` mounted `/data:ro`, `DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel`; libraries are `/data/media/movies` + `/data/media/tv` |
+| music | navidrome | `deluan/navidrome` | 4533 | `/mnt/library/music` — the mergerfs pool, not a single disk |
+| music | slskd | `slskd/slskd` | — | `network_mode: container:gluetun` (cross-stack — `service:` only resolves inside one file), no port mapping and no network of its own; Caddy dials `slskd:5030` through the alias on the `/media` stack's gluetun. Firewalled on purpose — see gotcha 10 |
+| music | soulsync | `ghcr.io/nezreka/soulsync` | 8008 | reads Soulseek downloads from `/mnt/library/downloads/soulseek` (instant move) but the `*arr` completions from `/mnt/streaming/...` (cross-device copy — expected) |
 | tdarr | tdarr | `ghcr.io/haveagitgat/tdarr` | 8265, 8266 | server, no iGPU |
 | tdarr | tdarr-node | `ghcr.io/haveagitgat/tdarr_node` | — | iGPU passthrough, node name `thinkpad-node` |
 | productivity | actual-server | `actualbudget/actual-server` | 5006 | |
@@ -60,6 +92,7 @@ All folders reside on the host at `/home/abed_23/apps/`.
 | productivity | bentopdf | `bentopdf/bentopdf` | 8086 → 8080 | |
 | productivity | freshrss | `lscr.io/linuxserver/freshrss` | 8087 → 80 | |
 | productivity | mealie | `ghcr.io/mealie-recipes/mealie` | 9925 → 9000 | |
+| productivity | sharry | `eikek0/sharry` | 8090 → 9090 | file sharing; `/opt/sharry.conf` and `/data` under `/apps`; `/mnt/streaming/inbox` mounted at `/inbox` |
 | calendar | radicale | `ghcr.io/kozea/radicale` | 5232 | config + data on absolute host paths; healthcheck curls `http://localhost:5232/` |
 | calendar | calendar-dav-mcp | `ghcr.io/philflowio/dav-mcp:4.1.1` | — | no published port; `PORT=8811` on `caddy_net` only; `depends_on: radicale (service_healthy)` |
 | monitoring | beszel | `henrygd/beszel` | — | no host port; Caddy proxies to it on `caddy_net` |
@@ -81,6 +114,10 @@ Two more names exist that are **not** in this repo's control but are in active u
 ### Hardware acceleration
 
 Intel iGPU is passed into `jellyfin` and `tdarr-node` as `/dev/dri/renderD128`, with the container added to render group `991`. Jellyfin additionally loads `linuxserver/mods:jellyfin-opencl-intel` via `DOCKER_MODS`. If a rebuilt container loses transcoding, check those lines first.
+
+⚠️ **Both `/dev/dri/renderD128` and GID `991` are properties of the host, not of this repo.** They do not survive a hardware swap. After any machine change, verify `ls -l /dev/dri` and `stat -c '%g' /dev/dri/renderD128` before starting these containers — a wrong GID gives a container that runs perfectly and simply cannot see the GPU.
+
+The current box also carries an **RTX 2070 Super**, which nothing in this repo uses yet. Jellyfin and Tdarr are still on Intel QuickSync. Moving them to NVENC is a deliberate, separate project — the NVIDIA Container Toolkit has to be installed first, and the `/dev/dri` + `group_add` blocks replace themselves with `deploy.resources.reservations.devices` (`driver: nvidia`). Don't do it in the same sitting as a migration.
 
 ## 🔐 Public ingress (Pangolin)
 
@@ -152,7 +189,7 @@ Notes on that list:
 
 ### 4. Tdarr pipeline
 
-Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/configs` (the stack folder repeats itself once) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/media/tdarr_temp` must stay on the same drive as `/mnt/media` or transcodes fall back to slow cross-device copies.
+Tdarr configs live in `/home/abed_23/apps/tdarr/tdarr/configs` (the stack folder repeats itself once) and are **not tracked here**. Current plugin-stack intent: strip PGS/VobSub subtitles, convert all audio to AAC, encode video with the Boosh QSV plugin to 10-bit H.265, target-bitrate modifier `0.5`, skipping sources under 5000 kbps. `/mnt/streaming/tdarr` must stay on the same drive as `/mnt/streaming/media` or transcodes fall back to slow cross-device copies. It sits *beside* `media` rather than inside it, so neither Jellyfin's library scan nor Tdarr's own walk ever stumbles into a folder full of half-written files.
 
 ### 5. productivity-feed: the container port is always 8080
 
@@ -212,6 +249,18 @@ Six helper services ride along, and each one has a reason to be odd:
 * **The Caddyfile line did not change.** `slskd` has no network interface of its own any more, so `/media`'s `gluetun` carries the `slskd` alias. Caddy's existing `reverse_proxy slskd:5030` still resolves — same trick as the `productivity-feed` alias in gotcha 5. If slskd returns 502, check that alias first.
 * **The killswitch is gluetun's, not slskd's.** slskd has an optional `SLSKD_VPN` integration that polls gluetun's control server and connects/disconnects from Soulseek based on tunnel state. It is deliberately **not** configured: gluetun's firewall already drops every packet that isn't on `tun0`, so there is nothing to leak, and the integration only adds a way to end up with slskd refusing to connect whenever the control server is unhappy.
 * **The web UI has no password.** `music/slskd/slskd.example.yml` ships `authentication.disabled: true`, and the host-only Caddyfile gives it a public hostname. That is a Soulseek client with full share and download control reachable from the internet. Set `disabled: false` plus credentials, and keep the `api_keys` entry so SoulSync can still call the API.
+
+### 11. `/mnt/library` is a mergerfs pool, not a disk
+
+`/mnt/library` is mergerfs: it takes `/mnt/ssd1tb` and `/mnt/hdd1tb` and presents them as one directory tree. Each individual **file** lives entirely on one drive; nothing is striped or spanned. That is the whole point — a dead drive costs you its own contents, not the entire library.
+
+* **Never point a volume at `/mnt/ssd1tb` or `/mnt/hdd1tb` directly.** Only ever the pool. Writing to a branch behind mergerfs's back creates the classic two-rival-albums problem.
+* **Never span drives with LVM or RAID 0 instead.** That *is* striping: one drive fails, everything is gone.
+* **Order matters in `/etc/fstab`.** Branches first, pool last, and the pool line carries `x-systemd.requires-mounts-for=/mnt/ssd1tb` and `...=/mnt/hdd1tb` so systemd won't mount the pool over empty mount points.
+* **`category.create=epmfs` keeps an artist's folder on one drive.** New content goes to the drive that already holds that path, so albums and photo years don't get split down the middle.
+* **`moveonenospc=true`** means a file that outgrows its drive gets relocated instead of failing the write.
+* **Do not put appdata on the pool.** SQLite and Postgres on a union filesystem is a corruption speedrun. Navidrome's database stays on the OS SSD under `/apps`.
+* **Everything carries `nofail`.** If a branch fails to mount, the pool comes up anyway on one drive and half the library is silently absent — which is exactly the situation where an app "helpfully" decides your files are missing.
 
 ## 🚀 How to update a service
 

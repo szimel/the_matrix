@@ -27,13 +27,21 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel 
+    # MIGRATION: Intel iGPU passthrough. /dev/dri and GID 991 are properties of
+    # the OLD host. On the new box check `ls -l /dev/dri` and
+    # `stat -c '%g' /dev/dri/renderD128` before starting this container. If the
+    # new CPU has no iGPU -- or once you switch to the 2070 Super -- this block
+    # and DOCKER_MODS above both need revisiting.
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
     group_add:
       - "991"
     volumes:
       - /home/abed_23/apps/streaming/jellyfin/config:/config
-      - /mnt/media:/media:ro
+      # Whole streaming drive at /data (read-only: Jellyfin never writes here).
+      # Libraries are /data/media/movies and /data/media/tv -- update both in
+      # Dashboard > Libraries after first boot.
+      - /mnt/streaming:/data:ro
     ports:
       - 8096:8096
     restart: unless-stopped
