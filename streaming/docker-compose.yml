@@ -49,7 +49,7 @@ services:
       # Whole streaming drive at /data (read-only: Jellyfin never writes here).
       # Libraries are /data/media/movies and /data/media/tv -- update both in
       # Dashboard > Libraries after first boot.
-      - /mnt/streaming:/data:ro
+      - /mnt/streaming/media:/data:ro
     ports:
       - 8096:8096
     restart: unless-stopped
