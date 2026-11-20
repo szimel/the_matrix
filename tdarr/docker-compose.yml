@@ -38,21 +38,7 @@ services:
       # NVENC on the RTX 2070 Super. No Intel iGPU on this host.
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-    # NVENC on the RTX 2070 Super -- no iGPU here, so /dev/dri and GID 991 are
-    # both gone. Requires the NVIDIA Container Toolkit on the host; Tdarr's docs
-    # warn that `runtime: nvidia` only works once `docker info` actually lists an
-    # `nvidia` runtime, which is what `nvidia-ctk runtime configure` sets up.
-    #
-    # NOTE: this makes the GPU visible to the node. It does NOT migrate the
-    # transcode stack -- see README gotcha 12, this node's flows are QSV plugins.
     runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     volumes:
       - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
       - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
