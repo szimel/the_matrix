@@ -36,6 +36,18 @@ services:
     networks:
       - caddy_net
 
+    filebrowser:
+      image: gtstef/filebrowser:latest
+      container_name: filebrowser
+      restart: unless-stopped
+      environment:
+        - FILEBROWSER_ADMIN_PASSWORD=${FB_ADMIN_PASSWORD}
+      volumes:
+        - /mnt:/mnt
+        - /home/abed_23/apps/productivity/filebrowser:/home/filebrowser/data
+      ports:
+        - 8085:80
+
 networks:
   caddy_net:
     external: true
