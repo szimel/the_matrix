@@ -10,7 +10,7 @@ services:
     environment:
       - DB_HOST=romm-db
       - DB_NAME=romm
-      - DB_USER=romm-user
+      - DB_USER=abed_23
       - DB_PASSWD=${ROMM_DB_PASSWORD}
       - ROMM_AUTH_SECRET_KEY=${ROMM_AUTH_SECRET_KEY}
       - TZ=${TZ}
