@@ -46,7 +46,7 @@ services:
       - /mnt:/mnt
       - /home/abed_23/apps/productivity/filebrowser:/home/filebrowser/data
     ports:
-      - 8085:80
+      - 8084:80
     networks:
       - caddy_net
 
