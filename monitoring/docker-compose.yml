@@ -36,17 +36,19 @@ services:
     networks:
       - caddy_net
 
-  filebrowser:
-    image: gtstef/filebrowser:latest
-    container_name: filebrowser
+  filestash:
+    image: machines/filestash:latest
+    container_name: filestash
     restart: unless-stopped
+    user: "${PUID}:${PGID}"
     environment:
-      - FILEBROWSER_ADMIN_PASSWORD=${FB_ADMIN_PASSWORD}
-    volumes:
-      - /mnt:/mnt
-      - /home/abed_23/apps/productivity/filebrowser:/home/filebrowser/data
+      - TZ=${TZ}
+      - LOCAL_FS_PATH=/mnt
     ports:
-      - 8084:80
+      - 8334:8334
+    volumes:
+      - /home/abed_23/apps/productivity/filestash/data:/app/data
+      - /mnt:/mnt
     networks:
       - caddy_net
 
