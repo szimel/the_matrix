@@ -1,23 +1,3 @@
-# Hardware migration (branch: hardware-migration)
-# Media now lives on the 2 TB drive mounted at /mnt/streaming on the host.
-#
-# Every container that touches it mounts the WHOLE drive at /data, so that the
-# download folders and the library sit on one filesystem. That is what lets
-# Radarr/Sonarr hardlink an import instead of copying it across devices.
-#
-#   HOST                             CONTAINER
-#   /mnt/streaming                   /data
-#   /mnt/streaming/media/movies      /data/media/movies
-#   /mnt/streaming/media/tv          /data/media/tv
-#   /mnt/streaming/transmission/     /data/transmission/{complete,incomplete}
-#   /mnt/streaming/sabnzbd/          /data/sabnzbd/{complete,incomplete}
-#
-# App-side paths that must be updated in each UI after first boot:
-#   Transmission  download/incomplete dirs -> /data/transmission/{complete,incomplete}
-#   SABnzbd       folders                  -> /data/sabnzbd/{complete,incomplete}
-#   Radarr        root folder              -> /data/media/movies
-#   Sonarr        root folder              -> /data/media/tv
-
 services:
   gluetun:
     image: qmcgaw/gluetun:latest
@@ -27,11 +7,6 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      # PrivadoVPN via the Privado account bundled with the Eweka Usenet plan.
-      # Gluetun's built-in `privado` provider is OpenVPN-only (no WireGuard).
-      # Privado does not offer port forwarding, so 51413 below is outbound-only.
-      # This namespace is also shared by /music's slskd — see the `slskd`
-      # network alias and the 5030 publish below.
       - VPN_SERVICE_PROVIDER=privado
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${PRIVADO_USER}
@@ -74,9 +49,6 @@ services:
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
-    # Deliberately NOT behind gluetun: Usenet traffic is SSL-encrypted to the
-    # provider end-to-end, so the VPN adds nothing here but latency. Only
-    # transmission (torrents) needs the tunnel.
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -137,23 +109,6 @@ services:
     networks:
       - caddy_net
 
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
-    container_name: bazarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - /home/abed_23/apps/media/bazarr/config:/config
-      # read-write on purpose: Bazarr writes .srt sidecars next to the media files
-      - /mnt/streaming:/data
-    ports:
-      - 6767:6767
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
@@ -165,22 +120,21 @@ services:
     networks:
       - caddy_net
 
-  cleanuparr:
-    image: ghcr.io/cleanuparr/cleanuparr:latest
-    container_name: cleanuparr
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - PORT=11011
-    volumes:
-      - /home/abed_23/apps/media/cleanuparr/config:/config
-    ports:
-      - 11011:11011
-    networks:
-      - caddy_net
-      
+  # cleanuparr:
+  #   image: ghcr.io/cleanuparr/cleanuparr:latest
+  #   container_name: cleanuparr
+  #   restart: unless-stopped
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+  #     - PORT=11011
+  #   volumes:
+  #     - /home/abed_23/apps/media/cleanuparr/config:/config
+  #   ports:
+  #     - 11011:11011
+  #   networks:
+  #     - caddy_net
 
 networks:
   caddy_net:
