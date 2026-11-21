@@ -13,8 +13,11 @@ services:
       - /home/abed_23/apps/tdarr/tdarr/server:/app/server
       - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
       - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
-      - /mnt/media:/media
-      - /mnt/media/tdarr_temp:/temp    # <--- CRITICAL: Temp must be on the same drive as media
+      - /mnt/streaming:/data
+      # CRITICAL: temp must be on the same drive as media. /mnt/streaming/tdarr
+      # is a sibling of /mnt/streaming/media on the same filesystem, so a
+      # finished transcode is a rename, not a multi-GB copy.
+      - /mnt/streaming/tdarr:/temp
     ports:
       - 8265:8265
       - 8266:8266
@@ -32,15 +35,15 @@ services:
       - serverIP=tdarr
       - serverPort=8266
       - nodeName=thinkpad-node
-    devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128  # <--- iGPU Passthrough
-    group_add:
-      - "991"                                   # <--- iGPU Render Group
+      # NVENC on the RTX 2070 Super. No Intel iGPU on this host.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    runtime: nvidia
     volumes:
       - /home/abed_23/apps/tdarr/tdarr/configs:/app/configs
       - /home/abed_23/apps/tdarr/tdarr/logs:/app/logs
-      - /mnt/media:/media
-      - /mnt/media/tdarr_temp:/temp
+      - /mnt/streaming:/data
+      - /mnt/streaming/tdarr:/temp
     restart: unless-stopped
     networks:
       - caddy_net

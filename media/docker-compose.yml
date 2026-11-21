@@ -7,11 +7,6 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      # PrivadoVPN via the Privado account bundled with the Eweka Usenet plan.
-      # Gluetun's built-in `privado` provider is OpenVPN-only (no WireGuard).
-      # Privado does not offer port forwarding, so 51413 below is outbound-only.
-      # This namespace is also shared by /music's slskd — see the `slskd`
-      # network alias and the 5030 publish below.
       - VPN_SERVICE_PROVIDER=privado
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${PRIVADO_USER}
@@ -47,23 +42,20 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/transmission/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     network_mode: "service:gluetun"
     restart: unless-stopped
 
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
-    # Deliberately NOT behind gluetun: Usenet traffic is SSL-encrypted to the
-    # provider end-to-end, so the VPN adds nothing here but latency. Only
-    # transmission (torrents) needs the tunnel.
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/sabnzbd/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 8083:8080
     restart: unless-stopped
@@ -94,7 +86,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/radarr/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -110,26 +102,9 @@ services:
       - TZ=${TZ}
     volumes:
       - /home/abed_23/apps/media/sonarr/config:/config
-      - /mnt/media:/media
+      - /mnt/streaming:/data
     ports:
       - 8989:8989
-    restart: unless-stopped
-    networks:
-      - caddy_net
-
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
-    container_name: bazarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - /home/abed_23/apps/media/bazarr/config:/config
-      # read-write on purpose: Bazarr writes .srt sidecars next to the media files
-      - /mnt/media:/media
-    ports:
-      - 6767:6767
     restart: unless-stopped
     networks:
       - caddy_net
@@ -145,22 +120,21 @@ services:
     networks:
       - caddy_net
 
-  cleanuparr:
-    image: ghcr.io/cleanuparr/cleanuparr:latest
-    container_name: cleanuparr
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - PORT=11011
-    volumes:
-      - /home/abed_23/apps/media/cleanuparr/config:/config
-    ports:
-      - 11011:11011
-    networks:
-      - caddy_net
-      
+  # cleanuparr:
+  #   image: ghcr.io/cleanuparr/cleanuparr:latest
+  #   container_name: cleanuparr
+  #   restart: unless-stopped
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+  #     - PORT=11011
+  #   volumes:
+  #     - /home/abed_23/apps/media/cleanuparr/config:/config
+  #   ports:
+  #     - 11011:11011
+  #   networks:
+  #     - caddy_net
 
 networks:
   caddy_net:

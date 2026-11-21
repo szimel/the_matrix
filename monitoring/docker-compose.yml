@@ -36,6 +36,22 @@ services:
     networks:
       - caddy_net
 
+  filestash:
+    image: machines/filestash:latest
+    container_name: filestash
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    environment:
+      - TZ=${TZ}
+      - LOCAL_FS_PATH=/mnt
+    ports:
+      - 8334:8334
+    volumes:
+      - /home/abed_23/apps/productivity/filestash/data:/app/data
+      - /mnt:/mnt
+    networks:
+      - caddy_net
+
 networks:
   caddy_net:
     external: true
