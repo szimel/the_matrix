@@ -47,7 +47,7 @@ services:
     ports:
       - 8334:8334
     volumes:
-      - /home/abed_23/apps/productivity/filestash/data:/app/data
+      - /home/abed_23/apps/monitoring/filestash/data:/app/data
       - /mnt:/mnt
     networks:
       - caddy_net
