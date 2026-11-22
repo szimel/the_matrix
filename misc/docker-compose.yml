@@ -23,7 +23,13 @@ services:
       - SCREENSCRAPER_PASSWORD=${SCREENSCRAPER_PASSWORD:-}
       - RETROACHIEVEMENTS_API_KEY=${RETROACHIEVEMENTS_API_KEY:-}
       - STEAMGRIDDB_API_KEY=${STEAMGRIDDB_API_KEY:-}
-    # Uncomment to make files on the host owned by PUID instead of root.
+      # Setting I manually turned on:
+      - PLAYMATCH_API_ENABLED=true
+      - HLTB_API_ENABLED=true
+      - STEAM_API_ENABLED=true
+      - FLASHPOINT_API_ENABLED=true
+      - LAUNCHBOX_API_ENABLED=true 
+      - ENABLE_SCHEDULED_UPDATE_LAUNCHBOX_METADATA=true
     user: "${PUID}:${PGID}"
     volumes:
       - /home/abed_23/apps/misc/romm/resources:/romm/resources
