@@ -18,19 +18,17 @@ services:
       - SCAN_WORKERS=4
       - WEB_SERVER_CONCURRENCY=4
       - HASHEOUS_API_ENABLED=true
-      # Optional metadata providers. Leave the Dockhand variables unset to
-      # disable them; an empty value is ignored by RomM.
-      - SCREENSCRAPER_USER=${SCREENSCRAPER_USER:-}
-      - SCREENSCRAPER_PASSWORD=${SCREENSCRAPER_PASSWORD:-}
-      - RETROACHIEVEMENTS_API_KEY=${RETROACHIEVEMENTS_API_KEY:-}
-      - STEAMGRIDDB_API_KEY=${STEAMGRIDDB_API_KEY:-}
       # Setting I manually turned on:
       - PLAYMATCH_API_ENABLED=true
       - HLTB_API_ENABLED=true
       - STEAM_API_ENABLED=true
       - FLASHPOINT_API_ENABLED=true
-      - LAUNCHBOX_API_ENABLED=true 
       - ENABLE_SCHEDULED_UPDATE_LAUNCHBOX_METADATA=true
+      - SCREENSCRAPER_USER=${SCREENSCRAPER_USER}
+      - SCREENSCRAPER_PASSWORD=${SCREENSCRAPER_PASSWORD}
+      - LAUNCHBOX_API_ENABLED=true
+      - ENABLE_SCHEDULED_UPDATE_LAUNCHBOX_METADATA=true
+      - RETROACHIEVEMENTS_API_KEY=${RETROACHIEVEMENTS_API_KEY}
     user: "${PUID}:${PGID}"
     volumes:
       - /home/abed_23/apps/misc/romm/resources:/romm/resources
