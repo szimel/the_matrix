@@ -3,6 +3,7 @@ services:
     image: henrygd/beszel:latest
     container_name: beszel
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       APP_URL: ${BESZEL_APP_URL}
     volumes:
@@ -33,6 +34,23 @@ services:
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - caddy_net
+
+  filestash:
+    image: machines/filestash:latest
+    container_name: filestash
+    restart: unless-stopped
+    stop_grace_period: 30s
+    user: "${PUID}:${PGID}"
+    environment:
+      - TZ=${TZ}
+      - LOCAL_FS_PATH=/mnt
+    ports:
+      - 8334:8334
+    volumes:
+      - /home/abed_23/apps/monitoring/filestash/data:/app/data
+      - /mnt:/mnt
     networks:
       - caddy_net
 

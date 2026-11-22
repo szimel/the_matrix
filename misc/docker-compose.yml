@@ -1,0 +1,74 @@
+services:
+  romm:
+    image: rommapp/romm:latest
+    container_name: romm
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      romm-db:
+        condition: service_healthy
+        restart: true
+    environment:
+      - DB_HOST=romm-db
+      - DB_NAME=romm
+      - DB_USER=abed_23
+      - DB_PASSWD=${ROMM_DB_PASSWORD}
+      - ROMM_AUTH_SECRET_KEY=${ROMM_AUTH_SECRET_KEY}
+      - TZ=${TZ}
+      - SCAN_WORKERS=4
+      - WEB_SERVER_CONCURRENCY=4
+      - HASHEOUS_API_ENABLED=true
+      # Optional metadata providers. Leave the Dockhand variables unset to
+      # disable them; an empty value is ignored by RomM.
+      - SCREENSCRAPER_USER=${SCREENSCRAPER_USER:-}
+      - SCREENSCRAPER_PASSWORD=${SCREENSCRAPER_PASSWORD:-}
+      - RETROACHIEVEMENTS_API_KEY=${RETROACHIEVEMENTS_API_KEY:-}
+      - STEAMGRIDDB_API_KEY=${STEAMGRIDDB_API_KEY:-}
+      # Setting I manually turned on:
+      - PLAYMATCH_API_ENABLED=true
+      - HLTB_API_ENABLED=true
+      - STEAM_API_ENABLED=true
+      - FLASHPOINT_API_ENABLED=true
+      - LAUNCHBOX_API_ENABLED=true 
+      - ENABLE_SCHEDULED_UPDATE_LAUNCHBOX_METADATA=true
+    user: "${PUID}:${PGID}"
+    volumes:
+      - /home/abed_23/apps/misc/romm/resources:/romm/resources
+      - /home/abed_23/apps/misc/romm/assets:/romm/assets
+      - /home/abed_23/apps/misc/romm/config:/romm/config
+      - /home/abed_23/apps/misc/romm/redis-data:/redis-data
+      - /mnt/streaming/media/romm:/romm/library
+    ports:
+      - '8091:8080'
+    networks:
+      - caddy_net
+
+  # RomM retro game library and its database.
+  # Library root is /mnt/streaming/media/romm, mounted at /romm/library.
+  # That folder must contain roms/<platform>/ and bios/<platform>/ (Structure A).
+  romm-db:
+    image: mariadb:latest
+    container_name: romm-db
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      - MARIADB_ROOT_PASSWORD=${ROMM_DB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=romm
+      - MARIADB_USER=abed_23
+      - MARIADB_PASSWORD=${ROMM_DB_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - /home/abed_23/apps/productivity/romm/db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      start_interval: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true

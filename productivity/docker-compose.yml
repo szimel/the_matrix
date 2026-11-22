@@ -3,10 +3,11 @@ services:
     image: actualbudget/actual-server:latest
     container_name: actual-server
     restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - '5006:5006'
     volumes:
-      - /mnt/actual-data:/data
+      - /mnt/library/actual-data:/data
     networks:
       - caddy_net
 
@@ -22,9 +23,10 @@ services:
     ports:
       - 8080:80
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
-      
+
   omni-tools:
     image: iib0011/omni-tools:latest
     container_name: omni-tools
@@ -33,7 +35,7 @@ services:
       - 8085:80
     networks:
       - caddy_net
-      
+
   bentopdf:
     image: bentopdf/bentopdf:latest
     container_name: bentopdf
@@ -55,6 +57,7 @@ services:
     ports:
       - 8087:80
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
       
@@ -71,10 +74,15 @@ services:
     volumes:
       - /home/abed_23/apps/productivity/sharry/sharry.conf:/opt/sharry.conf:ro
       - /home/abed_23/apps/productivity/sharry/data:/data
-      - /mnt/media/inbox:/inbox
+      # MIGRATION: was /mnt/media/inbox. /mnt/media no longer exists, so this
+      # would otherwise start as an empty auto-created folder. I parked it on
+      # the streaming drive to keep Sharry working -- move it if you'd rather
+      # this lived somewhere else.
+      - /mnt/streaming/inbox:/inbox
     networks:
       - caddy_net
     restart: unless-stopped
+    stop_grace_period: 30s
 
 networks:
   caddy_net:
