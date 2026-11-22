@@ -16,6 +16,7 @@ services:
     ports:
       - 5055:5055
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -46,6 +47,7 @@ services:
     ports:
       - 8096:8096
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 

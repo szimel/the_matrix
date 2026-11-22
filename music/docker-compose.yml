@@ -35,6 +35,7 @@ services:
     ports:
       - 4533:4533
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -75,6 +76,7 @@ services:
     # in slskd.yml to the same number.
     network_mode: "container:gluetun"
     restart: unless-stopped
+    stop_grace_period: 30s
 
   soulsync:
     image: ghcr.io/nezreka/soulsync:latest
@@ -95,6 +97,7 @@ services:
     ports:
       - 8008:8008
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 

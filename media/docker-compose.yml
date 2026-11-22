@@ -45,6 +45,7 @@ services:
       - /mnt/streaming:/data
     network_mode: "service:gluetun"
     restart: unless-stopped
+    stop_grace_period: 30s
 
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
@@ -59,6 +60,7 @@ services:
     ports:
       - 8083:8080
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -74,6 +76,7 @@ services:
     ports:
       - 9696:9696
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -90,6 +93,7 @@ services:
     ports:
       - 7878:7878
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -106,6 +110,7 @@ services:
     ports:
       - 8989:8989
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 

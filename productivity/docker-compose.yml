@@ -3,6 +3,7 @@ services:
     image: actualbudget/actual-server:latest
     container_name: actual-server
     restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - '5006:5006'
     volumes:
@@ -22,6 +23,7 @@ services:
     ports:
       - 8080:80
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
@@ -55,6 +57,7 @@ services:
     ports:
       - 8087:80
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
       
@@ -79,6 +82,7 @@ services:
     networks:
       - caddy_net
     restart: unless-stopped
+    stop_grace_period: 30s
 
 networks:
   caddy_net:

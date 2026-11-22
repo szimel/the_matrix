@@ -3,6 +3,7 @@ services:
     image: rommapp/romm:latest
     container_name: romm
     restart: unless-stopped
+    stop_grace_period: 30s
     depends_on:
       romm-db:
         condition: service_healthy
@@ -49,6 +50,7 @@ services:
     image: mariadb:latest
     container_name: romm-db
     restart: unless-stopped
+    stop_grace_period: 60s
     environment:
       - MARIADB_ROOT_PASSWORD=${ROMM_DB_ROOT_PASSWORD}
       - MARIADB_DATABASE=romm

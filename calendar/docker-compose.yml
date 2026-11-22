@@ -13,6 +13,7 @@ services:
     image: ghcr.io/kozea/radicale:latest
     container_name: radicale
     restart: unless-stopped
+    stop_grace_period: 30s
     volumes:
       - /home/abed_23/apps/calendar/radicale/config:/etc/radicale
       - /home/abed_23/apps/calendar/radicale/data:/var/lib/radicale

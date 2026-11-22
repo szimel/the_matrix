@@ -3,6 +3,7 @@ services:
     image: henrygd/beszel:latest
     container_name: beszel
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       APP_URL: ${BESZEL_APP_URL}
     volumes:
@@ -40,6 +41,7 @@ services:
     image: machines/filestash:latest
     container_name: filestash
     restart: unless-stopped
+    stop_grace_period: 30s
     user: "${PUID}:${PGID}"
     environment:
       - TZ=${TZ}

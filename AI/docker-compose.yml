@@ -32,6 +32,7 @@ services:
     ports:
       - 8081:8080
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - caddy_net
 
