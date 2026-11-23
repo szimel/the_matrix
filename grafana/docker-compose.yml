@@ -1,0 +1,90 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=5y"
+      - "--web.enable-lifecycle"
+    volumes:
+      - /home/abed_23/apps/grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /home/abed_23/apps/grafana/prometheus/data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - caddy_net
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    mem_limit: 256m
+    environment:
+      - GOMEMLIMIT=150MiB
+    command:
+      - "--docker_only=true"
+      - "--enable_metrics=cpu,memory,network"
+      - "--store_container_labels=false"
+      - "--housekeeping_interval=15s"
+      - "--max_housekeeping_interval=30s"
+      - "--storage_duration=1m0s"
+      - "--event_storage_event_limit=default=0"
+      - "--event_storage_age_limit=default=0"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - caddy_net
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /:/host:ro,rslave
+
+  nvidia-gpu-exporter:
+    image: utkuozdemir/nvidia_gpu_exporter:latest
+    container_name: nvidia-gpu-exporter
+    restart: unless-stopped
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - caddy_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    environment:
+      - TZ=${TZ}
+    ports:
+      - 3001:3000
+    volumes:
+      - /home/abed_23/apps/grafana/grafana/data:/var/lib/grafana
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
