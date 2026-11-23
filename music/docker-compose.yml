@@ -31,7 +31,7 @@ services:
       - ND_AUTOUPDATE=true
     volumes:
       - /home/abed_23/apps/music/navidrome/config:/data
-      - /mnt/library/music:/music
+      - /mnt/ssd1tb/media/music:/music
     ports:
       - 4533:4533
     restart: unless-stopped
