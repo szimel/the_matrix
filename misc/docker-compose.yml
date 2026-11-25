@@ -48,7 +48,7 @@ services:
     image: mariadb:latest
     container_name: romm-db
     restart: unless-stopped
-    stop_grace_period: 60s
+    stop_grace_period: 30s
     environment:
       - MARIADB_ROOT_PASSWORD=${ROMM_DB_ROOT_PASSWORD}
       - MARIADB_DATABASE=romm
@@ -64,6 +64,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - caddy_net
+
+  shelfarr:
+    image: ghcr.io/pedro-revez-silva/shelfarr:latest
+    container_name: shelfarr
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - SOLID_QUEUE_IN_PUMA=1
+    volumes:
+      - /home/abed_23/apps/misc/shelfarr/storage:/rails/storage
+      - /mnt/streaming:/data
+    ports:
+      - '5056:80'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - caddy_net
 
